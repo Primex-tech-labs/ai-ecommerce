@@ -2,6 +2,7 @@
 
 import { Button } from "@repo/ui";
 import { useCallback, useEffect, useState } from "react";
+import { connectWallet } from "@/lib/wallet";
 
 const STORAGE_KEY = "primex.wallet";
 
@@ -16,17 +17,7 @@ export function WalletConnectButton() {
   const connect = useCallback(async () => {
     setError(null);
     try {
-      const kit = await import("@creit.tech/stellar-wallets-kit");
-      const network =
-        process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
-          ? kit.WalletNetwork.PUBLIC
-          : kit.WalletNetwork.TESTNET;
-      kit.StellarWalletsKit.init({
-        network,
-        selectedWalletId: kit.FREIGHTER_ID,
-        modules: kit.allowAllModules(),
-      });
-      const { address: connected } = await kit.StellarWalletsKit.authModal();
+      const connected = await connectWallet();
       window.localStorage.setItem(STORAGE_KEY, connected);
       setAddress(connected);
       window.dispatchEvent(new CustomEvent("wallet:changed", { detail: connected }));

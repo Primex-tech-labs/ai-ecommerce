@@ -145,7 +145,8 @@ export async function submitSignedTransaction(
     throw new Error(`transaction submission failed: ${JSON.stringify(sent.errorResult)}`);
   }
   const result = await server.pollTransaction(sent.hash, { attempts: 20 });
-  return { hash: sent.hash, status: result.status, ledger: result.ledger };
+  const ledger = "ledger" in result ? result.ledger : undefined;
+  return { hash: sent.hash, status: result.status, ledger };
 }
 
 export async function readEscrow(

@@ -14,7 +14,7 @@ const variant: ProductVariant = {
 
 describe("cart", () => {
   it("adds lines and computes subtotal", () => {
-    const cart = addLine(addLine(createCart("c1"), variant, 2));
+    const cart = addLine(createCart("c1"), variant, 2);
     expect(countItems(cart)).toBe(2);
     expect(subtotal(cart).amount).toBe(20);
   });

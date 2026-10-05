@@ -3,6 +3,7 @@
 import { Button } from "@repo/ui";
 import { useEffect, useState } from "react";
 import { useCart } from "./CartProvider";
+import { signWalletTransaction } from "@/lib/wallet";
 
 const STORAGE_KEY = "primex.wallet";
 
@@ -46,11 +47,7 @@ export function StellarCheckoutButton() {
         networkPassphrase: string;
       };
 
-      const kit = await import("@creit.tech/stellar-wallets-kit");
-      const { signedTxXdr } = await kit.StellarWalletsKit.signTransaction(xdr, {
-        networkPassphrase,
-        address,
-      });
+      const signedTxXdr = await signWalletTransaction(xdr, networkPassphrase, address);
 
       const submitResponse = await fetch("/api/payments/stellar/submit", {
         method: "POST",
