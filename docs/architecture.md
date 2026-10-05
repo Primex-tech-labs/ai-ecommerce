@@ -1,19 +1,21 @@
-# Architecture
-
-## Overview
+# Overview
 
 The framework separates commerce domain logic from AI capabilities so each side can evolve
-independently.
+independently. A Stellar/Soroban layer provides on-chain settlement for orders.
 
 - **`@repo/commerce-core`** owns the domain: `Product`, `ProductVariant`, `Cart`, and pure
   cart operations. It also defines the `CatalogRepository` interface with an in-memory
   implementation used by the demo storefront.
-- **`apps/web`** renders the storefront and proxies assistant traffic through a Next.js API
-  route so API keys never reach the browser.
+- **`@repo/stellar`** wraps the Stellar SDK: network config, Soroban escrow calls, classic
+  payments, and contract event reads.
+- **`apps/web`** renders the storefront, proxies assistant traffic through a Next.js API
+  route, and builds/submits Stellar transactions so keys never reach the browser.
 - **`@repo/ai-client`** is a typed HTTP client for the AI service, usable from server
   components, route handlers, or tests.
 - **`apps/ai-service`** exposes the AI capabilities and abstracts the model behind the
   `LLMProvider` interface.
+- **`apps/indexer`** reconciles Soroban escrow events with orders.
+- **`contracts/escrow`** is the Soroban escrow smart contract.
 
 ## Assistant request flow
 
@@ -27,6 +29,18 @@ ChatWidget (client)
 
 Keeping the browser pointed at a same-origin Next.js route means provider credentials and
 prompts stay on the server and CORS is limited to first-party calls.
+
+## Settlement flow
+
+```
+StellarCheckoutButton (client)
+  -> POST /api/payments/stellar        (build create+fund escrow, return unsigned XDR)
+  -> wallet signs
+  -> POST /api/payments/stellar/submit (submit + poll)
+  -> apps/indexer observes escrow events -> orders webhook
+```
+
+See [stellar.md](stellar.md) for the contract lifecycle and deployment steps.
 
 ## Provider abstraction
 
@@ -55,13 +69,13 @@ changing the API contracts.
 
 ## Data stores
 
-`docker-compose.yml` provides Postgres, Redis, and Ollama as optional infrastructure.
-The current scaffold does not require them; wire them in when you add persistence,
-sessions, or embeddings.
+`docker-compose.yml` provides Postgres, Redis, Ollama, and an optional Stellar Quickstart
+node. The base scaffold does not require them; wire them in when you add persistence,
+sessions, embeddings, or on-chain settlement.
 
 ## Extension points
 
 - Swap `InMemoryCatalog` for a database-backed `CatalogRepository`.
 - Persist carts server-side and merge with the localStorage cart in `CartProvider`.
-- Implement the checkout step against a payment provider.
+- Add merchant `release`/`refund` endpoints backed by the escrow contract.
 - Add streaming responses by extending `ChatReply` with an SSE endpoint.

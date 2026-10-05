@@ -6,13 +6,16 @@ and shared TypeScript domain packages, wired together in a Turborepo + pnpm work
 
 ## What is included
 
-- **Storefront** (`apps/web`) - catalog, product pages, cart, checkout stub, and an AI
-  shopping assistant panel.
+- **Storefront** (`apps/web`) - catalog, product pages, cart, checkout, an AI shopping
+  assistant panel, and Stellar wallet checkout.
 - **AI service** (`apps/ai-service`) - FastAPI app exposing chat, recommendations, and
   semantic search with a swappable LLM provider.
+- **Stellar / Soroban** - a Soroban escrow contract (`contracts/escrow`), a typed
+  TypeScript SDK (`@repo/stellar`), and an event indexer (`apps/indexer`).
 - **Shared packages**
   - `@repo/commerce-core` - domain types, cart logic, and a catalog repository.
   - `@repo/ai-client` - typed client for the AI service.
+  - `@repo/stellar` - Stellar/Soroban config, escrow, payments, and events.
   - `@repo/ui` - shared React components (product card, price, chat widget).
 
 ## Layout
@@ -21,11 +24,15 @@ and shared TypeScript domain packages, wired together in a Turborepo + pnpm work
 apps/
   web/          Next.js storefront
   ai-service/   FastAPI + LLM providers
+  indexer/      Soroban escrow event indexer
 packages/
   commerce-core/  cart + catalog domain
   ai-client/      typed AI service client
+  stellar/        Stellar/Soroban SDK wrappers
   ui/             shared React components
-docs/           architecture notes
+contracts/
+  escrow/         Soroban escrow contract (Rust)
+docs/           architecture + Stellar notes
 infra/          infrastructure assets
 ```
 
@@ -81,6 +88,17 @@ registering it in `factory.py`.
 | `pnpm test`      | Run Vitest suites                        |
 | `pnpm ai:dev`    | Run the FastAPI service with reload      |
 | `pnpm ai:test`   | Run the Python test suite                |
+| `pnpm --filter @repo/indexer dev` | Run the Soroban event indexer |
+
+## Stellar / Soroban
+
+The checkout can settle orders through a Soroban escrow contract. See
+[docs/stellar.md](docs/stellar.md) for the payment flow, deployment, and local network.
+
+```bash
+cd contracts/escrow && cargo test          # contract unit tests
+docker compose --profile stellar up stellar # local Stellar Quickstart node
+```
 
 ## Docker
 

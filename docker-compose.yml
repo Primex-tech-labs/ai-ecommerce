@@ -40,6 +40,13 @@ services:
     depends_on:
       - redis
 
+  stellar:
+    image: stellar/quickstart:latest
+    profiles: ["stellar"]
+    command: ["--standalone", "--enable-soroban-rpc"]
+    ports:
+      - "8001:8000"
+
 volumes:
   pgdata:
   ollama:

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { WalletConnectButton } from "./WalletConnectButton";
 import { useCart } from "./CartProvider";
 
 export function Header() {
@@ -18,6 +19,7 @@ export function Header() {
           <Link href="/cart" className="text-slate-600 hover:text-slate-900">
             Cart ({count})
           </Link>
+          <WalletConnectButton />
         </nav>
       </div>
     </header>

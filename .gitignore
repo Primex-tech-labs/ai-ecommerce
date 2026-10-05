@@ -15,6 +15,10 @@ out/
 .env.*.local
 !.env.example
 
+# rust / soroban
+target/
+**/target/
+
 # python
 __pycache__/
 *.py[cod]

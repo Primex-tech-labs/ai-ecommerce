@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Button, Price } from "@repo/ui";
 import { useState } from "react";
 import { useCart } from "@/components/CartProvider";
+import { StellarCheckoutButton } from "@/components/StellarCheckoutButton";
+import { WalletConnectButton } from "@/components/WalletConnectButton";
 
 export default function CheckoutPage() {
   const { cart, subtotal, clear } = useCart();
@@ -47,14 +49,26 @@ export default function CheckoutPage() {
       <div className="text-lg">
         Total: <Price value={subtotal} />
       </div>
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-slate-900">Pay with Stellar</h2>
+          <WalletConnectButton />
+        </div>
+        <p className="text-sm text-slate-600">
+          Funds are held in a Soroban escrow contract and released to the merchant on
+          fulfilment.
+        </p>
+        <StellarCheckoutButton />
+      </div>
       <Button
+        variant="ghost"
         disabled={cart.lines.length === 0}
         onClick={() => {
           clear();
           setPlaced(true);
         }}
       >
-        Place order
+        Place demo order (no payment)
       </Button>
     </div>
   );

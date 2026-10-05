@@ -11,9 +11,12 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@creit.tech/stellar-wallets-kit": "^2.7.0",
     "@repo/ai-client": "workspace:*",
     "@repo/commerce-core": "workspace:*",
+    "@repo/stellar": "workspace:*",
     "@repo/ui": "workspace:*",
+    "@stellar/stellar-sdk": "^17.2.1",
     "next": "14.2.15",
     "react": "18.3.1",
     "react-dom": "18.3.1"
