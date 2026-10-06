@@ -54,6 +54,23 @@ ESCROW_CONTRACT_ID=CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV \
   pnpm --filter @repo/stellar exec node scripts/verify-contract.mjs
 ```
 
+End-to-end testnet smoke test (creates two funded accounts, then runs
+`create -> fund -> release` with the native XLM Stellar Asset Contract):
+
+```bash
+ESCROW_CONTRACT_ID=CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV \
+  pnpm --filter @repo/stellar smoke:escrow
+```
+
+Expected: the seller's balance increases by the escrowed amount. Example run:
+
+```
+{"msg":"create","hash":"..."}
+{"msg":"fund","hash":"..."}
+{"msg":"release","hash":"..."}
+{"msg":"done","sellerBefore":"100000000000","sellerAfter":"100010000000"}
+```
+
 ## Develop the contract
 
 ```bash
