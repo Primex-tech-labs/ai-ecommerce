@@ -24,6 +24,9 @@ Events: `created`, `funded`, `released`, `refunded`.
 cargo test
 ```
 
+On Windows the host `cdylib` may fail to link (PE export limit). Run tests in WSL, or
+temporarily set `crate-type = ["rlib"]` in `Cargo.toml`. CI runs the full suite on Linux.
+
 ## Build the wasm
 
 ```bash
@@ -31,5 +34,8 @@ cargo test
 stellar contract build
 ```
 
-The contract targets `soroban-sdk` v28. Deploy with `stellar contract deploy` and record
-the resulting contract id in `ESCROW_CONTRACT_ID`.
+The contract targets `soroban-sdk` v28. Deploy with `stellar contract deploy` (or the
+`@repo/stellar` deploy script) and record the resulting contract id in
+`ESCROW_CONTRACT_ID`.
+
+A testnet instance is deployed at `CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV`.

@@ -38,13 +38,42 @@ See `.env.example`. Keys:
 | `STELLAR_MERCHANT_ADDRESS` | Seller address that receives escrowed funds |
 | `STELLAR_TOKEN_CONTRACT_ID` | Token contract (Stellar Asset Contract) used for payment |
 
+## Deployed contract (testnet)
+
+An escrow instance is deployed to Stellar testnet:
+
+```
+ESCROW_CONTRACT_ID=CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV
+https://stellar.expert/explorer/testnet/contract/CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV
+```
+
+Verify it is live:
+
+```bash
+ESCROW_CONTRACT_ID=CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV \
+  pnpm --filter @repo/stellar exec node scripts/verify-contract.mjs
+```
+
 ## Develop the contract
 
 ```bash
 cd contracts/escrow
 cargo test                 # native unit tests (soroban-sdk testutils)
-stellar contract build     # produces the deployable wasm (requires stellar-cli v25.2.0+)
+stellar contract build     # canonical deployable wasm (requires stellar-cli v25.2.0+)
 ```
+
+If `stellar-cli` is unavailable, a wasm can still be produced for local deployment with:
+
+```bash
+SOROBAN_SDK_BUILD_SYSTEM_SUPPORTS_SPEC_SHAKING_V2=true \
+  cargo build --target wasm32v1-none --release
+```
+
+That build skips spec shaking, so prefer `stellar contract build` for a canonical artifact.
+
+> Windows note: native `cargo test` may fail to link the host `cdylib` (PE export limit).
+> Test via WSL, or temporarily set `crate-type = ["rlib"]` in `contracts/escrow/Cargo.toml`.
+> CI runs the full suite on Linux.
 
 ## Local network
 
@@ -57,14 +86,23 @@ This starts Stellar Quickstart in standalone mode with Soroban RPC exposed on
 
 ## Deploy the contract
 
+Using the bundled SDK script (no `stellar-cli` required):
+
+```bash
+pnpm --filter @repo/stellar deploy:escrow
+```
+
+It generates a funded testnet account via Friendbot, uploads the wasm, creates the
+contract instance, and prints the contract id. Record it in `ESCROW_CONTRACT_ID`.
+
+Or with the Stellar CLI:
+
 ```bash
 stellar contract deploy \
   --wasm target/wasm32v1-none/release/escrow.wasm \
   --source <identity> \
   --network testnet
 ```
-
-Record the printed contract id in `ESCROW_CONTRACT_ID`.
 
 ## Run the indexer
 
