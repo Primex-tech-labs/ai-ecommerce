@@ -1,8 +1,15 @@
 # AI Commerce Framework
 
-A framework for AI-assisted ecommerce storefronts. It ships a Next.js storefront, a
-provider-agnostic Python AI service (OpenAI / Anthropic / local models / offline stub),
-and shared TypeScript domain packages, wired together in a Turborepo + pnpm workspace.
+[![CI](https://github.com/Primex-tech-labs/ai-ecommerce/actions/workflows/ci.yml/badge.svg)](https://github.com/Primex-tech-labs/ai-ecommerce/actions/workflows/ci.yml)
+
+An open-source framework for building **AI-assisted ecommerce storefronts with on-chain
+settlement**. It combines a Next.js storefront, a provider-agnostic Python AI service, and
+a Soroban escrow contract on Stellar, wired together in a Turborepo + pnpm workspace.
+
+- Storefront with catalog, cart, checkout, and an AI shopping assistant.
+- Plug-and-play LLM providers: OpenAI, Anthropic, local models, or an offline stub.
+- Stellar/Soroban escrow for trust-minimized payments, with a wallet checkout flow.
+- Fully typed TypeScript packages and a tested Rust smart contract.
 
 ## What is included
 
@@ -17,6 +24,13 @@ and shared TypeScript domain packages, wired together in a Turborepo + pnpm work
   - `@repo/ai-client` - typed client for the AI service.
   - `@repo/stellar` - Stellar/Soroban config, escrow, payments, and events.
   - `@repo/ui` - shared React components (product card, price, chat widget).
+
+## Demo
+
+- Live escrow contract on Stellar testnet:
+  [`CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV`](https://stellar.expert/explorer/testnet/contract/CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV)
+- End-to-end escrow flow (`create -> fund -> release`): `pnpm --filter @repo/stellar smoke:escrow`
+- Storefront locally: `pnpm dev` then open http://localhost:3000
 
 ## Layout
 
@@ -109,3 +123,12 @@ docker compose up --build
 Starts Postgres, Redis, Ollama, and the AI service.
 
 See [docs/architecture.md](docs/architecture.md) for request flows and extension points.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). New contributors can start with issues labeled
+`good first issue`.
+
+## License
+
+MIT - see [LICENSE](LICENSE).
