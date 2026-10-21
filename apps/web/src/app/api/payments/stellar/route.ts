@@ -1,11 +1,13 @@
 import { buildCreateAndFundEscrow } from "@repo/stellar";
+import { StrKey } from "@stellar/stellar-sdk";
 import { NextResponse } from "next/server";
+import { subtotalFromLines, type CartLineInput } from "@/lib/pricing";
 import { getStellarConfig, toTokenAmount } from "@/lib/stellar";
 
 interface CreateBody {
   orderId: string;
   buyer: string;
-  amount: number;
+  lines: CartLineInput[];
 }
 
 export async function POST(request: Request) {
@@ -22,15 +24,23 @@ export async function POST(request: Request) {
 
   try {
     const body = (await request.json()) as CreateBody;
-    if (!body.buyer || !body.orderId || !body.amount) {
-      return NextResponse.json({ error: "orderId, buyer and amount are required" }, { status: 400 });
+    if (!body.buyer || !body.orderId || !Array.isArray(body.lines)) {
+      return NextResponse.json(
+        { error: "orderId, buyer and cart lines are required" },
+        { status: 400 },
+      );
     }
+    if (!StrKey.isValidEd25519PublicKey(body.buyer)) {
+      return NextResponse.json({ error: "buyer is not a valid Stellar account" }, { status: 400 });
+    }
+
+    const amount = subtotalFromLines(body.lines);
     const transaction = await buildCreateAndFundEscrow(config, {
       orderId: body.orderId,
       buyer: body.buyer,
       seller,
       token,
-      amount: toTokenAmount(body.amount),
+      amount: toTokenAmount(amount),
     });
     return NextResponse.json(transaction);
   } catch (error) {

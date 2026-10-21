@@ -17,8 +17,8 @@ export interface StellarConfig extends StellarNetworkConfig {
 export const NETWORKS: Record<StellarNetwork, StellarNetworkConfig> = {
   local: {
     name: "local",
-    rpcUrl: "http://localhost:8000/soroban/rpc",
-    horizonUrl: "http://localhost:8000",
+    rpcUrl: "http://localhost:8001/soroban/rpc",
+    horizonUrl: "http://localhost:8001",
     networkPassphrase: "Standalone Network ; February 2017",
   },
   testnet: {
@@ -42,7 +42,7 @@ export const NETWORKS: Record<StellarNetwork, StellarNetworkConfig> = {
 };
 
 const EXPLORERS: Record<StellarNetwork, string> = {
-  local: "http://localhost:8000",
+  local: "http://localhost:8001",
   testnet: "https://stellar.expert/explorer/testnet",
   futurenet: "https://stellar.expert/explorer/futurenet",
   mainnet: "https://stellar.expert/explorer/public",

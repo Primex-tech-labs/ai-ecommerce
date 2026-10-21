@@ -10,7 +10,7 @@ const STORAGE_KEY = "primex.wallet";
 type Status = "idle" | "working" | "done" | "error";
 
 export function StellarCheckoutButton() {
-  const { subtotal, clear, cart } = useCart();
+  const { clear, cart } = useCart();
   const [address, setAddress] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
@@ -39,7 +39,14 @@ export function StellarCheckoutButton() {
       const createResponse = await fetch("/api/payments/stellar", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ orderId, buyer: address, amount: subtotal.amount }),
+        body: JSON.stringify({
+          orderId,
+          buyer: address,
+          lines: cart.lines.map((line) => ({
+            variantId: line.variantId,
+            quantity: line.quantity,
+          })),
+        }),
       });
       if (!createResponse.ok) throw new Error(await createResponse.text());
       const { xdr, networkPassphrase } = (await createResponse.json()) as {
@@ -69,7 +76,7 @@ export function StellarCheckoutButton() {
   if (status === "done") {
     return (
       <p className="text-sm text-green-600">
-        Payment submitted.{" "}
+        Payment confirmed.{" "}
         <a className="underline" href={explorerUrl} target="_blank" rel="noreferrer">
           View on explorer
         </a>
