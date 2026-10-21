@@ -29,7 +29,7 @@ a Soroban escrow contract on Stellar, wired together in a Turborepo + pnpm works
 ## Demo
 
 - Live escrow contract on Stellar testnet:
-  [`CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV`](https://stellar.expert/explorer/testnet/contract/CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV)
+  [`CBBWLHEI3HUBZOVHCKSYGARLRGZYQ4VZCHYBYAIQN2A727J3COI7LMOQ`](https://stellar.expert/explorer/testnet/contract/CBBWLHEI3HUBZOVHCKSYGARLRGZYQ4VZCHYBYAIQN2A727J3COI7LMOQ)
 - End-to-end escrow flow (`create -> fund -> release`): `pnpm --filter @repo/stellar smoke:escrow`
 - Storefront locally: `pnpm dev` then open http://localhost:3000
 

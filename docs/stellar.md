@@ -44,35 +44,40 @@ See `.env.example`. Keys:
 An escrow instance is deployed to Stellar testnet:
 
 ```
-ESCROW_CONTRACT_ID=CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV
-https://stellar.expert/explorer/testnet/contract/CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV
+ESCROW_CONTRACT_ID=CBBWLHEI3HUBZOVHCKSYGARLRGZYQ4VZCHYBYAIQN2A727J3COI7LMOQ
+https://stellar.expert/explorer/testnet/contract/CBBWLHEI3HUBZOVHCKSYGARLRGZYQ4VZCHYBYAIQN2A727J3COI7LMOQ
 ```
 
-> This instance was deployed before the current contract hardening (buyer-authorized
-> `create`, TTL bumps, failure-aware settlement). Redeploy with
-> `pnpm --filter @repo/stellar deploy:escrow` to run the latest bytecode.
+This instance was deployed from the current source (buyer-authorized `create`,
+TTL bumps, failure-aware settlement):
 
-Verify it is live:
+- wasm upload: `506edc4b3426de18b7068af9cb82c69e66d53a1cfd3d6811c6d1ccf9305db952`
+- contract creation: `198fab1b56f1fffeaf0b03dc2a5b274594692ccda03c640f58d7be70ea95a9c0`
+- verified at ledger `5307853`, entry TTL extended to `5428812`
+
+Verify it is live (reads the contract instance entry, so it fails for a missing
+contract):
 
 ```bash
-ESCROW_CONTRACT_ID=CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV \
-  pnpm --filter @repo/stellar exec node scripts/verify-contract.mjs
+ESCROW_CONTRACT_ID=CBBWLHEI3HUBZOVHCKSYGARLRGZYQ4VZCHYBYAIQN2A727J3COI7LMOQ \
+  pnpm --filter @repo/stellar verify:contract
 ```
 
 End-to-end testnet smoke test (creates two funded accounts, then runs
 `create -> fund -> release` with the native XLM Stellar Asset Contract):
 
 ```bash
-ESCROW_CONTRACT_ID=CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV \
+ESCROW_CONTRACT_ID=CBBWLHEI3HUBZOVHCKSYGARLRGZYQ4VZCHYBYAIQN2A727J3COI7LMOQ \
   pnpm --filter @repo/stellar smoke:escrow
 ```
 
-Expected: the seller's balance increases by the escrowed amount. Example run:
+Expected: the seller's balance increases by the escrowed amount. Last verified
+run (`ordermvhpnyas`, seller +1 XLM):
 
 ```
-{"msg":"create","hash":"..."}
-{"msg":"fund","hash":"..."}
-{"msg":"release","hash":"..."}
+{"msg":"create","hash":"9d6fba6d7aacd6c86c42f3f3bba8b19d5f5bfcfaf20c896de3a49aba27d7c6c9"}
+{"msg":"fund","hash":"1f1a33fd30f18f3197eb21368069c87668d917a1eb650f255b8ac5c9c673f53f"}
+{"msg":"release","hash":"e4be8aad5ef404f4f01bbf145c65925b4a62e228f2d4d0680025eda25b70bdf3"}
 {"msg":"done","sellerBefore":"100000000000","sellerAfter":"100010000000"}
 ```
 

@@ -1,13 +1,4 @@
-import {
-  Account,
-  Contract,
-  Keypair,
-  Networks,
-  TransactionBuilder,
-  nativeToScVal,
-  rpc,
-  scValToNative,
-} from "@stellar/stellar-sdk";
+import { Networks, rpc, xdr } from "@stellar/stellar-sdk";
 
 const contractId = process.env.ESCROW_CONTRACT_ID ?? process.argv[2];
 if (!contractId) {
@@ -18,27 +9,34 @@ if (!contractId) {
 const rpcUrl = process.env.STELLAR_RPC_URL ?? "https://soroban-testnet.stellar.org";
 const networkPassphrase = process.env.STELLAR_NETWORK_PASSPHRASE ?? Networks.TESTNET;
 const server = new rpc.Server(rpcUrl, { allowHttp: rpcUrl.startsWith("http://") });
-const source = new Account(Keypair.random().publicKey(), "0");
 
-const transaction = new TransactionBuilder(source, {
-  fee: "100000",
-  networkPassphrase,
-})
-  .addOperation(new Contract(contractId).call("get", nativeToScVal("missing", { type: "symbol" })))
-  .setTimeout(30)
-  .build();
-
-const simulation = await server.simulateTransaction(transaction);
-if (rpc.Api.isSimulationError(simulation)) {
-  console.log(JSON.stringify({ msg: "contract-executed", contractId, error: simulation.error }));
-} else if (rpc.Api.isSimulationSuccess(simulation)) {
+try {
+  // Read the contract instance entry. This fails when the contract does not
+  // exist, unlike simulating a call where contract errors and missing
+  // contracts can look similar.
+  const entry = await server.getContractData(
+    contractId,
+    xdr.ScVal.scvLedgerKeyContractInstance(),
+    rpc.Durability.Persistent,
+  );
+  const explorerBase = networkPassphrase === Networks.PUBLIC ? "public" : "testnet";
   console.log(
     JSON.stringify({
-      msg: "contract-executed",
+      msg: "contract-live",
       contractId,
-      result: scValToNative(simulation.result.retval),
+      latestLedger: entry.latestLedger,
+      lastModifiedLedger: entry.lastModifiedLedgerSeq,
+      liveUntilLedger: entry.liveUntilLedgerSeq,
+      explorer: `https://stellar.expert/explorer/${explorerBase}/contract/${contractId}`,
     }),
   );
-} else {
-  console.log(JSON.stringify({ msg: "unexpected", contractId, simulation }));
+} catch (error) {
+  console.error(
+    JSON.stringify({
+      msg: "contract-unavailable",
+      contractId,
+      error: error instanceof Error ? error.message : String(error),
+    }),
+  );
+  process.exit(1);
 }
