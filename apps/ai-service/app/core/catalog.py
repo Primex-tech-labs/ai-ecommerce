@@ -1,6 +1,16 @@
 import re
+from typing import TypedDict
 
-PRODUCTS: list[dict] = [
+
+class Product(TypedDict):
+    id: str
+    name: str
+    description: str
+    tags: list[str]
+    popularity: float
+
+
+PRODUCTS: list[Product] = [
     {
         "id": "p-nebula",
         "name": "Nebula AI Robot Vacuum",
@@ -31,11 +41,11 @@ def tokenize(text: str) -> set[str]:
     return set(_TOKEN_RE.findall(text.lower()))
 
 
-def product_text(product: dict) -> str:
+def product_text(product: Product) -> str:
     return f"{product['name']} {' '.join(product['tags'])} {product['description']}"
 
 
-def by_id(product_id: str) -> dict | None:
+def by_id(product_id: str) -> Product | None:
     return next((item for item in PRODUCTS if item["id"] == product_id), None)
 
 

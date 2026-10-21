@@ -64,7 +64,7 @@ export function ChatWidget({ endpoint = "/api/assistant", title = "Shopping assi
       const reply = (await response.json()) as ChatReply;
       setMessages([...next, reply.message]);
       setStatus("idle");
-    } catch (error) {
+    } catch {
       setStatus("error");
     }
   }
@@ -82,7 +82,7 @@ export function ChatWidget({ endpoint = "/api/assistant", title = "Shopping assi
       const reply = (await response.json()) as ChatReply;
       setMessages([...messages, reply.message]);
       setStatus("idle");
-    } catch (error) {
+    } catch {
       setStatus("error");
     }
   }

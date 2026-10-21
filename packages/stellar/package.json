@@ -11,7 +11,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "deploy:escrow": "node scripts/deploy-escrow.mjs",
     "verify:contract": "node scripts/verify-contract.mjs",
     "smoke:escrow": "node scripts/smoke-escrow.mjs"

@@ -8,7 +8,8 @@ a Soroban escrow contract on Stellar, wired together in a Turborepo + pnpm works
 
 - Storefront with catalog, cart, checkout, and an AI shopping assistant.
 - Plug-and-play LLM providers: OpenAI, Anthropic, local models, or an offline stub.
-- Stellar/Soroban escrow for trust-minimized payments, with a wallet checkout flow.
+- Stellar/Soroban escrow settlement with a wallet checkout flow (buyer-authorized
+  orders, on-chain escrow, buyer release / seller refund).
 - Fully typed TypeScript packages and a tested Rust smart contract.
 
 ## What is included
@@ -16,7 +17,7 @@ a Soroban escrow contract on Stellar, wired together in a Turborepo + pnpm works
 - **Storefront** (`apps/web`) - catalog, product pages, cart, checkout, an AI shopping
   assistant panel, and Stellar wallet checkout.
 - **AI service** (`apps/ai-service`) - FastAPI app exposing chat, recommendations, and
-  semantic search with a swappable LLM provider.
+  keyword search with a swappable LLM provider.
 - **Stellar / Soroban** - a Soroban escrow contract (`contracts/escrow`), a typed
   TypeScript SDK (`@repo/stellar`), and an event indexer (`apps/indexer`).
 - **Shared packages**
@@ -62,6 +63,9 @@ infra/          infrastructure assets
 pnpm install
 cp .env.example .env
 
+# One-time Python setup for the AI service
+cd apps/ai-service && pip install -e ".[dev]" && cd ../..
+
 pnpm ai:dev      # http://localhost:8000
 pnpm dev         # http://localhost:3000
 ```
@@ -96,7 +100,7 @@ registering it in `factory.py`.
 | Command          | Description                              |
 | ---------------- | ---------------------------------------- |
 | `pnpm dev`       | Run all TypeScript dev servers (Turbo)   |
-| `pnpm build`     | Build all packages and apps              |
+| `pnpm build`     | Build the web app (Turbo runs build scripts) |
 | `pnpm lint`      | ESLint across the workspace              |
 | `pnpm typecheck` | Type-check all TypeScript packages       |
 | `pnpm test`      | Run Vitest suites                        |
