@@ -10,10 +10,26 @@ const config = resolveConfig({
 
 const pollMs = Number(process.env.INDEXER_POLL_MS ?? "5000");
 const webhookUrl = process.env.ORDERS_WEBHOOK_URL;
+const configuredStart = process.env.INDEXER_START_LEDGER;
 let cursor: number | undefined =
-  process.env.INDEXER_START_LEDGER && Number(process.env.INDEXER_START_LEDGER) > 0
-    ? Number(process.env.INDEXER_START_LEDGER)
-    : undefined;
+  configuredStart !== undefined && configuredStart !== "" ? Number(configuredStart) : undefined;
+
+async function deliver(record: unknown): Promise<void> {
+  console.log(JSON.stringify(record));
+  if (!webhookUrl) return;
+  try {
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(record),
+    });
+    if (!response.ok) {
+      console.error("webhook delivery failed", response.status);
+    }
+  } catch (error) {
+    console.error("webhook delivery failed", error);
+  }
+}
 
 async function tick(): Promise<void> {
   try {
@@ -21,20 +37,18 @@ async function tick(): Promise<void> {
       const latest = await getLatestLedger(config);
       cursor = Math.max(1, latest - 100);
     }
+
     const events = await fetchEscrowEvents(config, { startLedger: cursor, limit: 100 });
     for (const event of events) {
-      const record = { ts: new Date().toISOString(), ...event };
-      console.log(JSON.stringify(record));
-      if (webhookUrl) {
-        await fetch(webhookUrl, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(record),
-        }).catch((error: unknown) => {
-          console.error("webhook delivery failed", error);
-        });
-      }
+      await deliver({ ts: new Date().toISOString(), ...event });
       cursor = Math.max(cursor, event.ledger + 1);
+    }
+
+    // With no events the cursor would otherwise stay pinned to the same ledger
+    // forever and re-scan it on every tick.
+    if (events.length === 0) {
+      const latest = await getLatestLedger(config);
+      cursor = Math.max(cursor, latest + 1);
     }
   } catch (error) {
     console.error("indexer tick failed", error);

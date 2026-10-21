@@ -3,6 +3,11 @@ use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, token, Address, Env, Symbol,
 };
 
+/// Persistent entries are bumped once they have less than ~7 days of TTL.
+const TTL_THRESHOLD: u32 = 120_960;
+/// Keep escrow state alive for roughly 30 days at 5s ledgers.
+const TTL_EXTEND_TO: u32 = 518_400;
+
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
@@ -85,6 +90,9 @@ impl EscrowContract {
         token: Address,
         amount: i128,
     ) -> Result<(), Error> {
+        // The buyer authorizes the order, so nobody can squat another user's
+        // predictable order id.
+        buyer.require_auth();
         if amount <= 0 {
             return Err(Error::InvalidAmount);
         }
@@ -99,7 +107,7 @@ impl EscrowContract {
             amount,
             status: Status::Created,
         };
-        env.storage().persistent().set(&key, &escrow);
+        save(&env, &key, &escrow);
         Created {
             order_id: order_id.clone(),
             buyer,
@@ -113,22 +121,18 @@ impl EscrowContract {
 
     pub fn fund(env: Env, order_id: Symbol) -> Result<(), Error> {
         let key = DataKey::Escrow(order_id.clone());
-        let mut escrow: Escrow = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .ok_or(Error::NotFound)?;
+        let mut escrow = load(&env, &key)?;
         if escrow.status != Status::Created {
             return Err(Error::InvalidStatus);
         }
         escrow.buyer.require_auth();
         token::Client::new(&env, &escrow.token).transfer(
             &escrow.buyer,
-            &env.current_contract_address(),
+            env.current_contract_address(),
             &escrow.amount,
         );
         escrow.status = Status::Funded;
-        env.storage().persistent().set(&key, &escrow);
+        save(&env, &key, &escrow);
         Funded {
             order_id: order_id.clone(),
             amount: escrow.amount,
@@ -139,11 +143,7 @@ impl EscrowContract {
 
     pub fn release(env: Env, order_id: Symbol) -> Result<(), Error> {
         let key = DataKey::Escrow(order_id.clone());
-        let mut escrow: Escrow = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .ok_or(Error::NotFound)?;
+        let mut escrow = load(&env, &key)?;
         if escrow.status != Status::Funded {
             return Err(Error::InvalidStatus);
         }
@@ -154,7 +154,7 @@ impl EscrowContract {
             &escrow.amount,
         );
         escrow.status = Status::Released;
-        env.storage().persistent().set(&key, &escrow);
+        save(&env, &key, &escrow);
         Released {
             order_id: order_id.clone(),
             seller: escrow.seller.clone(),
@@ -165,11 +165,7 @@ impl EscrowContract {
 
     pub fn refund(env: Env, order_id: Symbol) -> Result<(), Error> {
         let key = DataKey::Escrow(order_id.clone());
-        let mut escrow: Escrow = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .ok_or(Error::NotFound)?;
+        let mut escrow = load(&env, &key)?;
         if escrow.status != Status::Funded {
             return Err(Error::InvalidStatus);
         }
@@ -180,7 +176,7 @@ impl EscrowContract {
             &escrow.amount,
         );
         escrow.status = Status::Refunded;
-        env.storage().persistent().set(&key, &escrow);
+        save(&env, &key, &escrow);
         Refunded {
             order_id: order_id.clone(),
             buyer: escrow.buyer.clone(),
@@ -190,11 +186,23 @@ impl EscrowContract {
     }
 
     pub fn get(env: Env, order_id: Symbol) -> Result<Escrow, Error> {
-        env.storage()
-            .persistent()
-            .get(&DataKey::Escrow(order_id))
-            .ok_or(Error::NotFound)
+        load(&env, &DataKey::Escrow(order_id))
     }
+}
+
+fn load(env: &Env, key: &DataKey) -> Result<Escrow, Error> {
+    let escrow: Escrow = env.storage().persistent().get(key).ok_or(Error::NotFound)?;
+    env.storage()
+        .persistent()
+        .extend_ttl(key, TTL_THRESHOLD, TTL_EXTEND_TO);
+    Ok(escrow)
+}
+
+fn save(env: &Env, key: &DataKey, escrow: &Escrow) {
+    env.storage().persistent().set(key, escrow);
+    env.storage()
+        .persistent()
+        .extend_ttl(key, TTL_THRESHOLD, TTL_EXTEND_TO);
 }
 
 #[cfg(test)]

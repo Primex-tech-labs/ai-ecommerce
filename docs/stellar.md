@@ -1,7 +1,8 @@
 # Stellar & Soroban
 
 The storefront can settle orders on Stellar using a Soroban escrow contract, with
-wallet-based signing in the browser and an indexer that reconciles on-chain events.
+wallet-based signing in the browser and an indexer that decodes on-chain events and
+forwards them to an orders webhook.
 
 ## Components
 
@@ -46,6 +47,10 @@ An escrow instance is deployed to Stellar testnet:
 ESCROW_CONTRACT_ID=CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV
 https://stellar.expert/explorer/testnet/contract/CCFAUBBGENQD76EIRC7NJ3LFTDJEMSUFJ7UBWP3F6SHMFLX2HRVAB4CV
 ```
+
+> This instance was deployed before the current contract hardening (buyer-authorized
+> `create`, TTL bumps, failure-aware settlement). Redeploy with
+> `pnpm --filter @repo/stellar deploy:escrow` to run the latest bytecode.
 
 Verify it is live:
 

@@ -1,5 +1,8 @@
 use super::*;
-use soroban_sdk::{testutils::Address as _, token, Address, Env, Symbol};
+use soroban_sdk::{
+    testutils::{Address as _, Events as _},
+    token, Address, Env, Symbol,
+};
 
 fn setup(
     env: &Env,
@@ -94,4 +97,49 @@ fn reads_escrow_state() {
     assert_eq!(escrow.amount, 100);
     assert_eq!(escrow.status, Status::Created);
     assert!(client.try_get(&Symbol::new(&env, "missing")).is_err());
+}
+
+#[test]
+fn create_requires_buyer_authorization() {
+    let env = Env::default();
+    let (_contract_id, client, buyer, seller, token_id, order) = setup(&env);
+    env.set_auths(&[]);
+
+    assert!(client
+        .try_create(&order, &buyer, &seller, &token_id, &100)
+        .is_err());
+}
+
+#[test]
+fn state_changes_require_authorization() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_contract_id, client, buyer, seller, token_id, order) = setup(&env);
+    token::StellarAssetClient::new(&env, &token_id).mint(&buyer, &1_000);
+    client.create(&order, &buyer, &seller, &token_id, &100);
+    client.fund(&order);
+
+    env.set_auths(&[]);
+    assert!(client.try_release(&order).is_err());
+    assert!(client.try_refund(&order).is_err());
+}
+
+#[test]
+fn emits_created_funded_and_released_events() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_contract_id, client, buyer, seller, token_id, order) = setup(&env);
+    token::StellarAssetClient::new(&env, &token_id).mint(&buyer, &1_000);
+
+    // The test host resets the event buffer between top-level invocations, so
+    // check the events emitted by each call: `created`, then the token
+    // `transfer` plus `funded`, then `transfer` plus `released`.
+    client.create(&order, &buyer, &seller, &token_id, &100);
+    assert_eq!(env.events().all().events().len(), 1);
+
+    client.fund(&order);
+    assert_eq!(env.events().all().events().len(), 2);
+
+    client.release(&order);
+    assert_eq!(env.events().all().events().len(), 2);
 }

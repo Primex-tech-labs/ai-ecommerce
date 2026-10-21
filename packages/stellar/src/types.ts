@@ -48,6 +48,12 @@ export interface SubmittedTransaction {
 export interface ContractEventSummary {
   id: string;
   ledger: number;
+  /** Contract event name: `created`, `funded`, `released` or `refunded`. */
   type: string;
   orderId?: string;
+  buyer?: string;
+  seller?: string;
+  token?: string;
+  /** Token amount as a decimal string so records stay JSON-serialisable. */
+  amount?: string;
 }

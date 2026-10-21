@@ -14,7 +14,7 @@ independently. A Stellar/Soroban layer provides on-chain settlement for orders.
   components, route handlers, or tests.
 - **`apps/ai-service`** exposes the AI capabilities and abstracts the model behind the
   `LLMProvider` interface.
-- **`apps/indexer`** reconciles Soroban escrow events with orders.
+- **`apps/indexer`** polls and decodes Soroban escrow events and forwards them to an orders webhook.
 - **`contracts/escrow`** is the Soroban escrow smart contract.
 
 ## Assistant request flow
@@ -77,5 +77,5 @@ sessions, embeddings, or on-chain settlement.
 
 - Swap `InMemoryCatalog` for a database-backed `CatalogRepository`.
 - Persist carts server-side and merge with the localStorage cart in `CartProvider`.
-- Add merchant `release`/`refund` endpoints backed by the escrow contract.
+- Add merchant-facing `release`/`refund` UI backed by the existing SDK helpers.
 - Add streaming responses by extending `ChatReply` with an SSE endpoint.
