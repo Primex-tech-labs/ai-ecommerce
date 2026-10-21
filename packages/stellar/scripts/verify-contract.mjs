@@ -19,6 +19,8 @@ try {
     xdr.ScVal.scvLedgerKeyContractInstance(),
     rpc.Durability.Persistent,
   );
+  const instance = await server.getContractInstance(contractId);
+  const wasmHash = instance.executable.wasmHash?.toString("hex");
   const explorerBase = networkPassphrase === Networks.PUBLIC ? "public" : "testnet";
   console.log(
     JSON.stringify({
@@ -27,6 +29,7 @@ try {
       latestLedger: entry.latestLedger,
       lastModifiedLedger: entry.lastModifiedLedgerSeq,
       liveUntilLedger: entry.liveUntilLedgerSeq,
+      wasmHash,
       explorer: `https://stellar.expert/explorer/${explorerBase}/contract/${contractId}`,
     }),
   );

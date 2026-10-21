@@ -52,6 +52,7 @@ This instance was deployed from the current source (buyer-authorized `create`,
 TTL bumps, failure-aware settlement):
 
 - wasm upload: `506edc4b3426de18b7068af9cb82c69e66d53a1cfd3d6811c6d1ccf9305db952`
+- wasm sha256: `dd9edcedd1aa61a67d9d65caa07f5f5767e0955d2610098c5f29ba2ebb65aee5`
 - contract creation: `198fab1b56f1fffeaf0b03dc2a5b274594692ccda03c640f58d7be70ea95a9c0`
 - verified at ledger `5307853`, entry TTL extended to `5428812`
 
