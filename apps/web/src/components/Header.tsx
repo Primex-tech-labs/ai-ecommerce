@@ -19,6 +19,9 @@ export function Header() {
           <Link href="/cart" className="text-slate-600 hover:text-slate-900">
             Cart ({count})
           </Link>
+          <Link href="/orders" className="text-slate-600 hover:text-slate-900">
+            Orders
+          </Link>
           <WalletConnectButton />
         </nav>
       </div>

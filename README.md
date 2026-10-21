@@ -6,20 +6,24 @@ An open-source framework for building **AI-assisted ecommerce storefronts with o
 settlement**. It combines a Next.js storefront, a provider-agnostic Python AI service, and
 a Soroban escrow contract on Stellar, wired together in a Turborepo + pnpm workspace.
 
-- Storefront with catalog, cart, checkout, and an AI shopping assistant.
+- Storefront with catalog, cart, checkout, an AI shopping assistant, and an orders
+  dashboard for escrow release/refund.
 - Plug-and-play LLM providers: OpenAI, Anthropic, local models, or an offline stub.
 - Stellar/Soroban escrow settlement with a wallet checkout flow (buyer-authorized
   orders, on-chain escrow, buyer release / seller refund).
+- A file-backed order store fed by signed indexer webhooks and a lifecycle view for
+  release/refund actions.
 - Fully typed TypeScript packages and a tested Rust smart contract.
 
 ## What is included
 
 - **Storefront** (`apps/web`) - catalog, product pages, cart, checkout, an AI shopping
-  assistant panel, and Stellar wallet checkout.
+  assistant panel, Stellar wallet checkout, and an orders page for release/refund.
 - **AI service** (`apps/ai-service`) - FastAPI app exposing chat, recommendations, and
   keyword search with a swappable LLM provider.
 - **Stellar / Soroban** - a Soroban escrow contract (`contracts/escrow`), a typed
-  TypeScript SDK (`@repo/stellar`), and an event indexer (`apps/indexer`).
+  TypeScript SDK (`@repo/stellar`), and an event indexer (`apps/indexer`) that feeds the
+  order store through a signed webhook.
 - **Shared packages**
   - `@repo/commerce-core` - domain types, cart logic, and a catalog repository.
   - `@repo/ai-client` - typed client for the AI service.
@@ -112,6 +116,28 @@ registering it in `factory.py`.
 
 The checkout can settle orders through a Soroban escrow contract. See
 [docs/stellar.md](docs/stellar.md) for the payment flow, deployment, and local network.
+
+### Order lifecycle
+
+The escrow contract emits `created`, `funded`, `released`, and `refunded` events. The
+indexer forwards each event to `POST /api/orders`, signing the raw body with
+`ORDERS_WEBHOOK_SECRET`. The web app verifies the HMAC-SHA256 signature and upserts the
+order into the JSON file at `ORDERS_FILE` (default `.data/orders.json`).
+
+```
+created -> funded -> released
+                  \-> refunded
+```
+
+The `/orders` page lists stored orders. A connected buyer can request `release`, and the
+seller can request `refund`; the browser signs the returned XDR and submits it through
+`/api/payments/stellar/submit`.
+
+| Variable | Purpose |
+| --- | --- |
+| `ORDERS_FILE` | JSON order store path (default `.data/orders.json`) |
+| `ORDERS_WEBHOOK_URL` | Indexer webhook target (default `http://localhost:3000/api/orders`) |
+| `ORDERS_WEBHOOK_SECRET` | Shared HMAC-SHA256 secret for indexer webhooks |
 
 ```bash
 cd contracts/escrow && cargo test          # contract unit tests

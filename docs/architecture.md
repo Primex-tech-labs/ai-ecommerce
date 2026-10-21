@@ -37,8 +37,21 @@ StellarCheckoutButton (client)
   -> POST /api/payments/stellar        (build create+fund escrow, return unsigned XDR)
   -> wallet signs
   -> POST /api/payments/stellar/submit (submit + poll)
-  -> apps/indexer observes escrow events -> orders webhook
+  -> apps/indexer observes escrow events
+       -> POST /api/orders             (HMAC-SHA256 signed webhook)
+       -> file-backed order store      (ORDERS_FILE, default .data/orders.json)
+  -> /orders                           (buyer release / seller refund)
+       -> POST /api/orders/[id]/release|refund -> unsigned XDR
+       -> wallet signs -> POST /api/payments/stellar/submit
 ```
+
+## Order lifecycle
+
+The indexer forwards `created`, `funded`, `released`, and `refunded` escrow events. The
+webhook route verifies `x-indexer-signature` against `ORDERS_WEBHOOK_SECRET` when the secret
+is configured, then upserts the order state in a JSON file guarded by an in-process write
+mutex. Release requests require the buyer as `source`; refund requests require the seller.
+See [stellar.md](stellar.md) for the full flow and environment variables.
 
 See [stellar.md](stellar.md) for the contract lifecycle and deployment steps.
 
@@ -71,11 +84,14 @@ changing the API contracts.
 
 `docker-compose.yml` provides Postgres, Redis, Ollama, and an optional Stellar Quickstart
 node. The base scaffold does not require them; wire them in when you add persistence,
-sessions, embeddings, or on-chain settlement.
+sessions, embeddings, or on-chain settlement. Orders currently persist to a local JSON file
+(`ORDERS_FILE`, default `.data/orders.json`); replace `apps/web/src/lib/orders.ts` with a
+database-backed implementation when you need multi-instance concurrency.
 
 ## Extension points
 
 - Swap `InMemoryCatalog` for a database-backed `CatalogRepository`.
 - Persist carts server-side and merge with the localStorage cart in `CartProvider`.
-- Add merchant-facing `release`/`refund` UI backed by the existing SDK helpers.
+- Replace the file-backed order store with a transactional database for multi-instance
+  deployments.
 - Add streaming responses by extending `ChatReply` with an SSE endpoint.

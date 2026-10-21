@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { fetchEscrowEvents, getLatestLedger, resolveConfig } from "@repo/stellar";
 
 const config = resolveConfig({
@@ -10,6 +11,7 @@ const config = resolveConfig({
 
 const pollMs = Number(process.env.INDEXER_POLL_MS ?? "5000");
 const webhookUrl = process.env.ORDERS_WEBHOOK_URL;
+const webhookSecret = process.env.ORDERS_WEBHOOK_SECRET;
 const configuredStart = process.env.INDEXER_START_LEDGER;
 let cursor: number | undefined =
   configuredStart !== undefined && configuredStart !== "" ? Number(configuredStart) : undefined;
@@ -17,11 +19,18 @@ let cursor: number | undefined =
 async function deliver(record: unknown): Promise<void> {
   console.log(JSON.stringify(record));
   if (!webhookUrl) return;
+  const body = JSON.stringify(record);
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (webhookSecret) {
+    headers["x-indexer-signature"] = createHmac("sha256", webhookSecret)
+      .update(body, "utf8")
+      .digest("hex");
+  }
   try {
     const response = await fetch(webhookUrl, {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(record),
+      headers,
+      body,
     });
     if (!response.ok) {
       console.error("webhook delivery failed", response.status);
@@ -69,6 +78,12 @@ console.log(
     pollMs,
   }),
 );
+
+if (webhookUrl && !webhookSecret) {
+  console.warn(
+    "ORDERS_WEBHOOK_SECRET is not set: sending unsigned order webhooks (development only)",
+  );
+}
 
 void tick();
 setInterval(() => void tick(), pollMs);

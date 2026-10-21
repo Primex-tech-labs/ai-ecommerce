@@ -10,7 +10,8 @@ forwards them to an orders webhook.
 - `packages/stellar` — typed TypeScript client (`@repo/stellar`) for config, contract calls,
   payments, and event reads
 - `apps/web` — wallet connect, Stellar checkout, and API routes that build/submit transactions
-- `apps/indexer` — polls escrow contract events and forwards them to an orders webhook
+- `apps/indexer` — polls escrow contract events, signs them, and forwards them to an orders webhook
+- `.data/orders.json` — file-backed order store updated by the webhook (configurable via `ORDERS_FILE`)
 
 ## Payment flow
 
@@ -20,11 +21,32 @@ StellarCheckoutButton (browser)
   -> POST /api/payments/stellar       -> build create+fund tx, simulate, assemble -> unsigned XDR
   -> wallet signs the XDR
   -> POST /api/payments/stellar/submit-> submit signed XDR, poll for result, return explorer URL
-apps/indexer                          -> watch escrow events, notify orders webhook
+apps/indexer                          -> watch escrow events, sign, POST /api/orders
+apps/web order store                  -> verify HMAC, upsert order state
 ```
 
 The merchant receives funds only after the buyer calls `release`. If fulfilment fails, the
 seller can `refund`.
+
+## Order lifecycle
+
+```
+created -> funded -> released
+                  \-> refunded
+```
+
+1. The indexer decodes each escrow event (`created`, `funded`, `released`, `refunded`) and
+   POSTs the JSON body to `ORDERS_WEBHOOK_URL`.
+2. When `ORDERS_WEBHOOK_SECRET` is set, the indexer sends
+   `x-indexer-signature: <hex HMAC-SHA256 of the raw body>`. The web route verifies it and
+   rejects mismatches with `401`; without a secret the route logs a development warning and
+   accepts the event.
+3. `POST /api/orders` upserts the order into `ORDERS_FILE` (default `.data/orders.json`),
+   guarded by an in-process write mutex.
+4. The `/orders` page lists stored orders. `POST /api/orders/[orderId]/release` requires
+   `source` to equal the order buyer; `POST /api/orders/[orderId]/refund` requires it to
+   equal the seller. Each returns unsigned XDR for the wallet to sign, and the existing
+   `/api/payments/stellar/submit` route submits it.
 
 ## Configuration
 
@@ -38,6 +60,9 @@ See `.env.example`. Keys:
 | `ESCROW_CONTRACT_ID` | Deployed escrow contract id |
 | `STELLAR_MERCHANT_ADDRESS` | Seller address that receives escrowed funds |
 | `STELLAR_TOKEN_CONTRACT_ID` | Token contract (Stellar Asset Contract) used for payment |
+| `ORDERS_FILE` | JSON order store path (default `.data/orders.json`) |
+| `ORDERS_WEBHOOK_URL` | Webhook target for indexer events |
+| `ORDERS_WEBHOOK_SECRET` | Shared secret used to sign and verify webhook bodies |
 
 ## Deployed contract (testnet)
 
@@ -135,5 +160,12 @@ stellar contract deploy \
 ## Run the indexer
 
 ```bash
-INDEXER_START_LEDGER=0 ORDERS_WEBHOOK_URL=http://localhost:3000/api/orders pnpm --filter @repo/indexer dev
+INDEXER_START_LEDGER=0 \
+ORDERS_WEBHOOK_URL=http://localhost:3000/api/orders \
+ORDERS_WEBHOOK_SECRET=dev-secret \
+  pnpm --filter @repo/indexer dev
 ```
+
+Set the same `ORDERS_WEBHOOK_SECRET` on the web app so it can verify the
+`x-indexer-signature` header. If it is unset, the webhook still accepts events but logs a
+development-only warning.

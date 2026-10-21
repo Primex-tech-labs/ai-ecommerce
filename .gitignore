@@ -16,6 +16,9 @@ out/
 .env.*.local
 !.env.example
 
+# local order store
+.data/
+
 # rust / soroban
 target/
 **/target/
