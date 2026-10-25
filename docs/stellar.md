@@ -59,10 +59,144 @@ See `.env.example`. Keys:
 | `STELLAR_HORIZON_URL` | Horizon endpoint (classic payments) |
 | `ESCROW_CONTRACT_ID` | Deployed escrow contract id |
 | `STELLAR_MERCHANT_ADDRESS` | Seller address that receives escrowed funds |
-| `STELLAR_TOKEN_CONTRACT_ID` | Token contract (Stellar Asset Contract) used for payment |
+| `STELLAR_TOKEN_CONTRACT_ID` | Token contract (Stellar Asset Contract) used for payment (see [Test asset setup](#test-asset-sac-setup)) |
+| `STELLAR_ASSET_CODE` | Asset code used by `setup:sac` (1-12 alphanumeric characters) |
+| `STELLAR_ASSET_ISSUER` | Funded issuer account used by `setup:sac` |
+| `STELLAR_ASSET_ISSUER_SECRET` | Issuer secret used only by `setup:sac`; never commit it |
 | `ORDERS_FILE` | JSON order store path (default `.data/orders.json`) |
 | `ORDERS_WEBHOOK_URL` | Webhook target for indexer events |
 | `ORDERS_WEBHOOK_SECRET` | Shared secret used to sign and verify webhook bodies |
+
+## Test asset (SAC) setup
+
+Checkout moves value through a Stellar Asset Contract (SAC). Native XLM already
+has one; a custom asset needs a funded issuer, an on-chain SAC instance, and
+trustlines for the accounts that hold it.
+
+### 1. Create and fund the issuer
+
+The issuer must be a funded account on the target network. On testnet, the
+Stellar CLI can create and fund one in a single step:
+
+```bash
+stellar keys generate issuer --network testnet --fund
+stellar keys address issuer
+```
+
+Or fund an existing account with Friendbot:
+
+```bash
+curl "https://friendbot.stellar.org/?addr=<ISSUER_PUBLIC_KEY>"
+```
+
+For a throwaway demo keypair:
+
+```ts
+import { Keypair } from "@stellar/stellar-sdk";
+
+const issuer = Keypair.random();
+console.log(issuer.publicKey(), issuer.secret());
+```
+
+### 2. Create the SAC
+
+The SAC id is deterministic: it is derived from the asset and the network
+passphrase, so the script can print it before the contract exists. Run:
+
+```bash
+STELLAR_NETWORK=testnet \
+STELLAR_ASSET_CODE=USDC \
+STELLAR_ASSET_ISSUER=<ISSUER_PUBLIC_KEY> \
+STELLAR_ASSET_ISSUER_SECRET=<ISSUER_SECRET> \
+  pnpm --filter @repo/stellar setup:sac
+```
+
+The script loads the issuer account, submits
+`Operation.createStellarAssetContract`, and prints the result:
+
+```json
+{"msg":"issuer","publicKey":"G...","network":"testnet","rpcUrl":"https://soroban-testnet.stellar.org"}
+{"msg":"asset","code":"USDC","issuer":"G...","contractId":"C..."}
+{"msg":"created","hash":"...","status":"SUCCESS","explorer":"https://stellar.expert/explorer/testnet/tx/..."}
+{"msg":"sac","contractId":"C...","explorer":"https://stellar.expert/explorer/testnet/contract/C..."}
+STELLAR_TOKEN_CONTRACT_ID=C...
+```
+
+Last verified testnet run (2026-10-25, throwaway `TSTDEMO` issuer):
+
+```
+STELLAR_TOKEN_CONTRACT_ID=CA4L6X62FJQA5SDVHYCIL3AEM63ZFV2Q72QQYJAM4ZAOFYFMGZNZQ4LS
+creation tx: 0a2ef546b3b760fa7cf6f56717f684a42d4d3516254202574908c2749730ec28
+```
+
+That instance is a smoke-test artifact; create your own issuer and SAC for a
+real checkout.
+
+Copy the `STELLAR_TOKEN_CONTRACT_ID` line into `.env`. The checkout route
+(`apps/web/src/app/api/payments/stellar/route.ts`) already passes this variable
+to `buildCreateAndFundEscrow`, so no code change is needed after setting it.
+
+The script fails with an actionable message when:
+
+- a required environment variable is missing,
+- `STELLAR_ASSET_ISSUER_SECRET` does not match `STELLAR_ASSET_ISSUER`,
+- the issuer is not funded (it prints the Friendbot URL for the account).
+
+Running it again for an existing asset reports `sac-exists` and prints the same
+id instead of failing.
+
+> Use a throwaway issuer on testnet. On mainnet the issuer needs real XLM for
+> fees and the resulting contract controls a real asset; never paste a mainnet
+> secret into a shell history or CI log.
+
+### 3. Add trustlines and a balance
+
+Stellar accounts must trust a non-native asset before they can hold it. The
+buyer and the merchant both need a trustline, and the buyer needs a balance
+before `fund` can move the asset into escrow.
+
+With the Stellar CLI:
+
+```bash
+stellar tx new change-trust \
+  --source <BUYER_IDENTITY> \
+  --line "USDC:<ISSUER_PUBLIC_KEY>" \
+  --network testnet
+
+stellar tx new payment \
+  --source issuer \
+  --destination <BUYER_PUBLIC_KEY> \
+  --asset "USDC:<ISSUER_PUBLIC_KEY>" \
+  --amount 100 \
+  --network testnet
+```
+
+Equivalent SDK operations:
+
+```ts
+import { Asset, Operation } from "@stellar/stellar-sdk";
+
+const asset = new Asset("USDC", issuerPublicKey);
+Operation.changeTrust({ asset });
+Operation.payment({ destination: buyerPublicKey, asset, amount: "100" });
+```
+
+If a trustline is missing, `fund` fails during simulation because the escrow
+contract cannot credit the buyer's balance.
+
+### Deriving the id without creating it
+
+The helper used by the tests is exported from `@repo/stellar`:
+
+```ts
+import { Networks } from "@stellar/stellar-sdk";
+import { deriveSacContractId } from "@repo/stellar";
+
+deriveSacContractId("USDC", issuerPublicKey, Networks.TESTNET);
+// CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA
+```
+
+`deriveNativeSacContractId(networkPassphrase)` returns the id for native XLM.
 
 ## Deployed contract (testnet)
 

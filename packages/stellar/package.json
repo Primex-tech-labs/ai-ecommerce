@@ -14,7 +14,8 @@
     "test": "vitest run",
     "deploy:escrow": "node scripts/deploy-escrow.mjs",
     "verify:contract": "node scripts/verify-contract.mjs",
-    "smoke:escrow": "node scripts/smoke-escrow.mjs"
+    "smoke:escrow": "node scripts/smoke-escrow.mjs",
+    "setup:sac": "node scripts/setup-sac.mjs"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "^17.2.1"
