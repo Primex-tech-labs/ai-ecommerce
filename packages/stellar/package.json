@@ -14,12 +14,13 @@
     "test": "vitest run",
     "deploy:escrow": "node scripts/deploy-escrow.mjs",
     "verify:contract": "node scripts/verify-contract.mjs",
-    "smoke:escrow": "node scripts/smoke-escrow.mjs"
+    "smoke:escrow": "tsx scripts/smoke-escrow.mjs"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "^17.2.1"
   },
   "devDependencies": {
+    "tsx": "^4.19.1",
     "typescript": "^5.6.3",
     "vitest": "^2.1.2"
   }
