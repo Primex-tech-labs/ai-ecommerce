@@ -9,7 +9,12 @@ import {
   scValToNative,
 } from "@stellar/stellar-sdk";
 import type { StellarConfig } from "./config";
-import { EscrowStatus, type EscrowRecord, type CreateEscrowParams, type UnsignedTransaction } from "./types";
+import {
+  EscrowStatus,
+  type EscrowRecord,
+  type CreateEscrowParams,
+  type UnsignedTransaction,
+} from "./types";
 
 const BASE_FEE = "1000000";
 const TIMEOUT_SECONDS = 180;
@@ -45,7 +50,8 @@ function assemble(
 ): string {
   const assembled = rpc.assembleTransaction(transaction, simulation);
   const built =
-    typeof (assembled as { build?: () => { toXDR: () => string } }).build === "function"
+    typeof (assembled as { build?: () => { toXDR: () => string } }).build ===
+    "function"
       ? (assembled as { build: () => { toXDR: () => string } }).build()
       : (assembled as unknown as { toXDR: () => string });
   return built.toXDR();
@@ -59,7 +65,9 @@ export async function buildCreateAndFundEscrow(
   const server = createServer(config);
   const account = await server.getAccount(params.buyer);
   const contract = new Contract(config.escrowContractId);
-  const orderId = nativeToScVal(toContractSymbol(params.orderId), { type: "symbol" });
+  const orderId = nativeToScVal(toContractSymbol(params.orderId), {
+    type: "symbol",
+  });
 
   const transaction = new TransactionBuilder(account, {
     fee: BASE_FEE,
@@ -87,6 +95,47 @@ export async function buildCreateAndFundEscrow(
   };
 }
 
+export async function buildCreateEscrow(
+  config: StellarConfig,
+  params: CreateEscrowParams,
+): Promise<UnsignedTransaction> {
+  assertContract(config);
+  const server = createServer(config);
+  const account = await server.getAccount(params.buyer);
+  const contract = new Contract(config.escrowContractId);
+  const transaction = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: config.networkPassphrase,
+  })
+    .addOperation(
+      contract.call(
+        "create",
+        nativeToScVal(toContractSymbol(params.orderId), { type: "symbol" }),
+        new Address(params.buyer).toScVal(),
+        new Address(params.seller).toScVal(),
+        new Address(params.token).toScVal(),
+        nativeToScVal(params.amount, { type: "i128" }),
+      ),
+    )
+    .setTimeout(TIMEOUT_SECONDS)
+    .build();
+
+  const simulation = await server.simulateTransaction(transaction);
+  assumeSimulationOk(simulation);
+  return {
+    xdr: assemble(transaction, simulation),
+    networkPassphrase: config.networkPassphrase,
+  };
+}
+
+export async function buildFundEscrow(
+  config: StellarConfig,
+  orderId: string,
+  source: string,
+): Promise<UnsignedTransaction> {
+  return buildSingleCall(config, source, "fund", orderId);
+}
+
 export async function buildReleaseEscrow(
   config: StellarConfig,
   orderId: string,
@@ -106,7 +155,7 @@ export async function buildRefundEscrow(
 async function buildSingleCall(
   config: StellarConfig,
   source: string,
-  method: "release" | "refund",
+  method: "fund" | "release" | "refund",
   orderId: string,
 ): Promise<UnsignedTransaction> {
   assertContract(config);
@@ -118,7 +167,10 @@ async function buildSingleCall(
     networkPassphrase: config.networkPassphrase,
   })
     .addOperation(
-      contract.call(method, nativeToScVal(toContractSymbol(orderId), { type: "symbol" })),
+      contract.call(
+        method,
+        nativeToScVal(toContractSymbol(orderId), { type: "symbol" }),
+      ),
     )
     .setTimeout(TIMEOUT_SECONDS)
     .build();
@@ -142,7 +194,9 @@ export async function submitSignedTransaction(
   ) as Parameters<rpc.Server["sendTransaction"]>[0];
   const sent = await server.sendTransaction(transaction);
   if (sent.status === "ERROR") {
-    throw new Error(`transaction submission failed: ${JSON.stringify(sent.errorResult)}`);
+    throw new Error(
+      `transaction submission failed: ${JSON.stringify(sent.errorResult)}`,
+    );
   }
   const result = await server.pollTransaction(sent.hash, { attempts: 20 });
   if (result.status !== "SUCCESS") {
@@ -165,7 +219,10 @@ export async function readEscrow(
     networkPassphrase: config.networkPassphrase,
   })
     .addOperation(
-      contract.call("get", nativeToScVal(toContractSymbol(orderId), { type: "symbol" })),
+      contract.call(
+        "get",
+        nativeToScVal(toContractSymbol(orderId), { type: "symbol" }),
+      ),
     )
     .setTimeout(TIMEOUT_SECONDS)
     .build();
@@ -174,7 +231,10 @@ export async function readEscrow(
   if (rpc.Api.isSimulationError(simulation)) return null;
   const success = simulation as rpc.Api.SimulateTransactionSuccessResponse;
   if (!success.result) return null;
-  const native = scValToNative(success.result.retval) as Record<string, unknown>;
+  const native = scValToNative(success.result.retval) as Record<
+    string,
+    unknown
+  >;
   return {
     buyer: String(native.buyer),
     seller: String(native.seller),
