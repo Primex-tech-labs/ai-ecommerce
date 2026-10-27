@@ -45,3 +45,8 @@ Thumbs.db
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# playwright
+playwright-report/
+blob-report/
+test-results/
