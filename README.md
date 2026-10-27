@@ -34,7 +34,7 @@ a Soroban escrow contract on Stellar, wired together in a Turborepo + pnpm works
 
 - Live escrow contract on Stellar testnet:
   [`CBBWLHEI3HUBZOVHCKSYGARLRGZYQ4VZCHYBYAIQN2A727J3COI7LMOQ`](https://stellar.expert/explorer/testnet/contract/CBBWLHEI3HUBZOVHCKSYGARLRGZYQ4VZCHYBYAIQN2A727J3COI7LMOQ)
-- End-to-end escrow flow (`create -> fund -> release`): `pnpm --filter @repo/stellar smoke:escrow`
+- End-to-end escrow flow (`create -> fund -> release`): `STELLAR_SMOKE_TEST=1 pnpm --filter @repo/stellar smoke:escrow`
 - Storefront locally: `pnpm dev` then open http://localhost:3000
 
 ## Layout
@@ -89,28 +89,28 @@ uvicorn app.main:app --reload --port 8000
 
 Set `AI_PROVIDER` in `apps/ai-service/.env` (or the root `.env`):
 
-| Value       | Requires            | Notes                                  |
-| ----------- | ------------------- | -------------------------------------- |
-| `stub`      | nothing             | Offline, rule-based, used in CI/tests  |
-| `openai`    | `OPENAI_API_KEY`    | Chat Completions API                   |
-| `anthropic` | `ANTHROPIC_API_KEY` | Messages API                           |
-| `local`     | Ollama              | Any OpenAI-compatible local endpoint   |
+| Value       | Requires            | Notes                                 |
+| ----------- | ------------------- | ------------------------------------- |
+| `stub`      | nothing             | Offline, rule-based, used in CI/tests |
+| `openai`    | `OPENAI_API_KEY`    | Chat Completions API                  |
+| `anthropic` | `ANTHROPIC_API_KEY` | Messages API                          |
+| `local`     | Ollama              | Any OpenAI-compatible local endpoint  |
 
 Add a provider by subclassing `LLMProvider` in `apps/ai-service/app/providers` and
 registering it in `factory.py`.
 
 ## Scripts
 
-| Command          | Description                              |
-| ---------------- | ---------------------------------------- |
-| `pnpm dev`       | Run all TypeScript dev servers (Turbo)   |
-| `pnpm build`     | Build the web app (Turbo runs build scripts) |
-| `pnpm lint`      | ESLint across the workspace              |
-| `pnpm typecheck` | Type-check all TypeScript packages       |
-| `pnpm test`      | Run Vitest suites                        |
-| `pnpm ai:dev`    | Run the FastAPI service with reload      |
-| `pnpm ai:test`   | Run the Python test suite                |
-| `pnpm --filter @repo/indexer dev` | Run the Soroban event indexer |
+| Command                           | Description                                  |
+| --------------------------------- | -------------------------------------------- |
+| `pnpm dev`                        | Run all TypeScript dev servers (Turbo)       |
+| `pnpm build`                      | Build the web app (Turbo runs build scripts) |
+| `pnpm lint`                       | ESLint across the workspace                  |
+| `pnpm typecheck`                  | Type-check all TypeScript packages           |
+| `pnpm test`                       | Run Vitest suites                            |
+| `pnpm ai:dev`                     | Run the FastAPI service with reload          |
+| `pnpm ai:test`                    | Run the Python test suite                    |
+| `pnpm --filter @repo/indexer dev` | Run the Soroban event indexer                |
 
 ## Stellar / Soroban
 
@@ -133,11 +133,11 @@ The `/orders` page lists stored orders. A connected buyer can request `release`,
 seller can request `refund`; the browser signs the returned XDR and submits it through
 `/api/payments/stellar/submit`.
 
-| Variable | Purpose |
-| --- | --- |
-| `ORDERS_FILE` | JSON order store path (default `.data/orders.json`) |
-| `ORDERS_WEBHOOK_URL` | Indexer webhook target (default `http://localhost:3000/api/orders`) |
-| `ORDERS_WEBHOOK_SECRET` | Shared HMAC-SHA256 secret for indexer webhooks |
+| Variable                | Purpose                                                             |
+| ----------------------- | ------------------------------------------------------------------- |
+| `ORDERS_FILE`           | JSON order store path (default `.data/orders.json`)                 |
+| `ORDERS_WEBHOOK_URL`    | Indexer webhook target (default `http://localhost:3000/api/orders`) |
+| `ORDERS_WEBHOOK_SECRET` | Shared HMAC-SHA256 secret for indexer webhooks                      |
 
 ```bash
 cd contracts/escrow && cargo test          # contract unit tests

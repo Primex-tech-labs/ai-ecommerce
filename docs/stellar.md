@@ -52,20 +52,20 @@ created -> funded -> released
 
 See `.env.example`. Keys:
 
-| Variable | Purpose |
-| --- | --- |
-| `STELLAR_NETWORK` | `local` \| `testnet` \| `futurenet` \| `mainnet` |
-| `STELLAR_RPC_URL` | Soroban RPC endpoint |
-| `STELLAR_HORIZON_URL` | Horizon endpoint (classic payments) |
-| `ESCROW_CONTRACT_ID` | Deployed escrow contract id |
-| `STELLAR_MERCHANT_ADDRESS` | Seller address that receives escrowed funds |
+| Variable                    | Purpose                                                  |
+| --------------------------- | -------------------------------------------------------- |
+| `STELLAR_NETWORK`           | `local` \| `testnet` \| `futurenet` \| `mainnet`         |
+| `STELLAR_RPC_URL`           | Soroban RPC endpoint                                     |
+| `STELLAR_HORIZON_URL`       | Horizon endpoint (classic payments)                      |
+| `ESCROW_CONTRACT_ID`        | Deployed escrow contract id                              |
+| `STELLAR_MERCHANT_ADDRESS`  | Seller address that receives escrowed funds              |
 | `STELLAR_TOKEN_CONTRACT_ID` | Token contract (Stellar Asset Contract) used for payment (see [Test asset setup](#test-asset-sac-setup)) |
-| `STELLAR_ASSET_CODE` | Asset code used by `setup:sac` (1-12 alphanumeric characters) |
-| `STELLAR_ASSET_ISSUER` | Funded issuer account used by `setup:sac` |
+| `STELLAR_ASSET_CODE`        | Asset code used by `setup:sac` (1-12 alphanumeric characters) |
+| `STELLAR_ASSET_ISSUER`      | Funded issuer account used by `setup:sac`                |
 | `STELLAR_ASSET_ISSUER_SECRET` | Issuer secret used only by `setup:sac`; never commit it |
-| `ORDERS_FILE` | JSON order store path (default `.data/orders.json`) |
-| `ORDERS_WEBHOOK_URL` | Webhook target for indexer events |
-| `ORDERS_WEBHOOK_SECRET` | Shared secret used to sign and verify webhook bodies |
+| `ORDERS_FILE`               | JSON order store path (default `.data/orders.json`)      |
+| `ORDERS_WEBHOOK_URL`        | Webhook target for indexer events                        |
+| `ORDERS_WEBHOOK_SECRET`     | Shared secret used to sign and verify webhook bodies     |
 
 ## Test asset (SAC) setup
 
@@ -223,22 +223,47 @@ ESCROW_CONTRACT_ID=CBBWLHEI3HUBZOVHCKSYGARLRGZYQ4VZCHYBYAIQN2A727J3COI7LMOQ \
   pnpm --filter @repo/stellar verify:contract
 ```
 
-End-to-end testnet smoke test (creates two funded accounts, then runs
-`create -> fund -> release` with the native XLM Stellar Asset Contract):
+### Testnet smoke test
+
+The smoke test deploys a fresh escrow from the locally built wasm, creates a Stellar
+Asset Contract (SAC) for a throwaway asset, funds buyer and seller through Friendbot,
+then exercises the full `create -> fund -> release` lifecycle with the
+`@repo/stellar` transaction builders. Token balances are asserted before and after
+each step, so a partial flow fails loudly.
+
+It only runs when `STELLAR_SMOKE_TEST=1` is set, and it skips cleanly when Soroban RPC
+is unreachable. Build the escrow wasm first (see
+[Develop the contract](#develop-the-contract)):
 
 ```bash
-ESCROW_CONTRACT_ID=CBBWLHEI3HUBZOVHCKSYGARLRGZYQ4VZCHYBYAIQN2A727J3COI7LMOQ \
-  pnpm --filter @repo/stellar smoke:escrow
+cd contracts/escrow
+stellar contract build
+cd ../..
+
+STELLAR_SMOKE_TEST=1 pnpm --filter @repo/stellar smoke:escrow
 ```
 
-Expected: the seller's balance increases by the escrowed amount. Last verified
-run (`ordermvhpnyas`, seller +1 XLM):
+Optional environment variables:
 
-```
-{"msg":"create","hash":"9d6fba6d7aacd6c86c42f3f3bba8b19d5f5bfcfaf20c896de3a49aba27d7c6c9"}
-{"msg":"fund","hash":"1f1a33fd30f18f3197eb21368069c87668d917a1eb650f255b8ac5c9c673f53f"}
-{"msg":"release","hash":"e4be8aad5ef404f4f01bbf145c65925b4a62e228f2d4d0680025eda25b70bdf3"}
-{"msg":"done","sellerBefore":"100000000000","sellerAfter":"100010000000"}
+| Variable                     | Default                         | Purpose                                                |
+| ---------------------------- | ------------------------------- | ------------------------------------------------------ |
+| `STELLAR_RPC_URL`            | testnet Soroban RPC             | RPC endpoint used for the run                          |
+| `STELLAR_HORIZON_URL`        | testnet Horizon                 | Horizon endpoint for classic trustline/payment setup   |
+| `STELLAR_NETWORK_PASSPHRASE` | testnet                         | Must resolve to the testnet passphrase                 |
+| `STELLAR_FRIENDBOT`          | `https://friendbot.stellar.org` | Account funding endpoint                               |
+| `STELLAR_SMOKE_ASSET_CODE`   | `SMOKE`                         | Asset code for the throwaway SAC (1-12 letters/digits) |
+
+A successful run ends with a transcript like:
+
+```json
+{"msg":"network","rpcUrl":"https://soroban-testnet.stellar.org","status":"healthy","latestLedger":123}
+{"msg":"sac","contractId":"C...","hash":"..."}
+{"msg":"deployed","contractId":"C...","explorer":"https://stellar.expert/explorer/testnet/contract/C..."}
+{"msg":"create","orderId":"smoke...","hash":"...","status":"SUCCESS"}
+{"msg":"fund","orderId":"smoke...","hash":"...","status":"SUCCESS"}
+{"msg":"release","orderId":"smoke...","hash":"...","status":"SUCCESS"}
+{"msg":"balances","amount":"100000000","buyer":{"before":"...","after":"..."},"seller":{"before":"...","after":"..."},"escrow":{"before":"0","after":"0"}}
+{"msg":"done","escrowContractId":"C...","sacContractId":"C...","orderId":"smoke...","wasmHash":"...","hashes":{"sac":"...","create":"...","fund":"...","release":"...","wasmUpload":"...","contractCreate":"..."}}
 ```
 
 ## Develop the contract
