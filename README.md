@@ -108,9 +108,26 @@ registering it in `factory.py`.
 | `pnpm lint`                       | ESLint across the workspace                  |
 | `pnpm typecheck`                  | Type-check all TypeScript packages           |
 | `pnpm test`                       | Run Vitest suites                            |
+| `pnpm e2e`                        | Run Playwright purchase-flow tests           |
 | `pnpm ai:dev`                     | Run the FastAPI service with reload          |
 | `pnpm ai:test`                    | Run the Python test suite                    |
 | `pnpm --filter @repo/indexer dev` | Run the Soroban event indexer                |
+
+## End-to-end tests
+
+The Playwright suite in `e2e/` covers browsing the catalog, opening a product,
+adding/updating/removing cart items, and reaching checkout. `pnpm e2e` starts
+both the storefront and the AI service with `AI_PROVIDER=stub`, so no API keys
+are required.
+
+```bash
+pnpm exec playwright install chromium   # once per machine
+pnpm e2e
+```
+
+Traces, screenshots, and videos are captured on failure in `test-results/`, and
+the HTML report is written to `playwright-report/`. CI uploads both artifacts
+when the job fails.
 
 ## Stellar / Soroban
 

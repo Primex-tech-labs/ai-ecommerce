@@ -15,10 +15,12 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "e2e": "playwright test",
     "ai:dev": "uvicorn app.main:app --reload --port 8000 --app-dir apps/ai-service",
     "ai:test": "python -m pytest apps/ai-service/tests"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "eslint": "^9.13.0",
     "eslint-config-prettier": "^9.1.0",
     "prettier": "^3.3.3",
