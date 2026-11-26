@@ -1,6 +1,6 @@
 import { buildResolveDispute } from "@repo/stellar";
 import { NextResponse } from "next/server";
-import { getOrder } from "@/lib/orders";
+import { getOrder } from "@/lib/orders-server";
 import { getStellarConfig } from "@/lib/stellar";
 
 export async function POST(

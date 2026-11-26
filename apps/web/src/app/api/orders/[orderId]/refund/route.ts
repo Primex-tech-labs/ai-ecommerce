@@ -1,7 +1,7 @@
 import { buildRefundEscrow } from "@repo/stellar";
 import { NextResponse } from "next/server";
 import { resolveOrderActionSource } from "@/lib/order-actions";
-import { getOrder } from "@/lib/orders";
+import { getOrder } from "@/lib/orders-server";
 import { getStellarConfig } from "@/lib/stellar";
 
 export async function POST(

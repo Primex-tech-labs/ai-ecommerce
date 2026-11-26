@@ -1,7 +1,7 @@
 import { Badge } from "@repo/ui";
 import Link from "next/link";
 import { OrderActions } from "@/components/OrderActions";
-import { listOrders } from "@/lib/orders";
+import { listOrders } from "@/lib/orders-server";
 
 export const dynamic = "force-dynamic";
 

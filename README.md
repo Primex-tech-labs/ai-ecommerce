@@ -177,6 +177,19 @@ create -> funded -> disputed -> released  (arbiter -> seller)
 The dispute flow requires the escrow contract with the dispute ABI; redeploy and
 update `ESCROW_CONTRACT_ID` after upgrading. See [docs/dispute.md](docs/dispute.md).
 
+## Database (PostgreSQL)
+
+When `DATABASE_URL` is set, orders are persisted in PostgreSQL; otherwise the app
+falls back to the JSON store (local dev / e2e). Migrations and the JSON importer
+are documented in [docs/database.md](docs/database.md).
+
+```bash
+pnpm --filter @repo/web db:migrate        # apply migrations
+pnpm --filter @repo/web db:status         # applied / pending
+pnpm --filter @repo/web db:rollback       # revert the latest migration
+pnpm --filter @repo/web db:import-orders  # import legacy JSON (idempotent)
+```
+
 ## Docker
 
 ```bash
