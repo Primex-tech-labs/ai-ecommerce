@@ -8,6 +8,7 @@ import { upsertFromEvent, type OrderEvent, type OrderStatus } from "@/lib/orders
 const EVENT_TYPES: readonly OrderStatus[] = [
   "created",
   "funded",
+  "disputed",
   "released",
   "refunded",
 ];

@@ -1,7 +1,12 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-export type OrderStatus = "created" | "funded" | "released" | "refunded";
+export type OrderStatus =
+  | "created"
+  | "funded"
+  | "disputed"
+  | "released"
+  | "refunded";
 
 export interface Order {
   orderId: string;
@@ -15,6 +20,7 @@ export interface Order {
   updatedAt: string;
   createTxHash?: string;
   fundTxHash?: string;
+  disputeTxHash?: string;
   releaseTxHash?: string;
   refundTxHash?: string;
 }
@@ -40,22 +46,26 @@ const DEFAULT_ORDERS_FILE = ".data/orders.json";
 type OrderHashField =
   | "createTxHash"
   | "fundTxHash"
+  | "disputeTxHash"
   | "releaseTxHash"
   | "refundTxHash";
 const HASH_FIELDS: Record<OrderStatus, OrderHashField> = {
   created: "createTxHash",
   funded: "fundTxHash",
+  disputed: "disputeTxHash",
   released: "releaseTxHash",
   refunded: "refundTxHash",
 };
 
 // Forward-only lifecycle. A re-delivered or out-of-order event must never move an
-// order backwards (e.g. a duplicate `funded` after `released`).
+// order backwards (e.g. a duplicate `funded` after `released`). A dispute is
+// resolved into a terminal `released` or `refunded` state.
 const STATUS_RANK: Record<OrderStatus, number> = {
   created: 1,
   funded: 2,
-  released: 3,
-  refunded: 3,
+  disputed: 3,
+  released: 4,
+  refunded: 4,
 };
 
 let writeQueue: Promise<unknown> = Promise.resolve();

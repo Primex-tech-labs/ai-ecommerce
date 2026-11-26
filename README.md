@@ -161,6 +161,22 @@ cd contracts/escrow && cargo test          # contract unit tests
 docker compose --profile stellar up stellar # local Stellar Quickstart node
 ```
 
+### Disputes
+
+If a funded order cannot be completed, the buyer or the seller can open a dispute.
+The order enters `disputed`, and only the configured arbiter
+(`STELLAR_ARBITER_ADDRESS`) can resolve it - either releasing the escrow to the
+seller or refunding the buyer. The arbiter is stored on each order at creation,
+so it cannot touch unrelated orders.
+
+```
+create -> funded -> disputed -> released  (arbiter -> seller)
+                            \-> refunded  (arbiter -> buyer)
+```
+
+The dispute flow requires the escrow contract with the dispute ABI; redeploy and
+update `ESCROW_CONTRACT_ID` after upgrading. See [docs/dispute.md](docs/dispute.md).
+
 ## Docker
 
 ```bash
@@ -184,7 +200,7 @@ Known limitations (documented, not hidden):
 - Orders are stored in a JSON file, not PostgreSQL; it is a single-instance read model.
 - There is no end-user authentication or per-owner order visibility.
 - No dispute/arbiter flow, and the contract has not been independently audited.
-- Financial math in `pricing.ts` uses `number` before conversion to stroops.
+- Monetary math is integer-only: catalog prices are integer major units and `pricing.ts` rejects fractional or overflowing totals.
 - Solana is not implemented; see [docs/solana.md](docs/solana.md) for the decision
   and an adapter plan. Background: [ADR 0001](docs/adr/0001-stellar-escrow.md).
 

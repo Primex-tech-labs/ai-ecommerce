@@ -17,10 +17,18 @@ export async function POST(request: Request) {
   const config = getStellarConfig();
   const seller = process.env.STELLAR_MERCHANT_ADDRESS;
   const token = process.env.STELLAR_TOKEN_CONTRACT_ID;
+  const arbiter = process.env.STELLAR_ARBITER_ADDRESS;
 
-  if (!config.escrowContractId || !seller || !token) {
+  if (!config.escrowContractId || !seller || !token || !arbiter) {
     return NextResponse.json(
       { error: "Stellar checkout is not configured" },
+      { status: 503 },
+    );
+  }
+
+  if (!StrKey.isValidEd25519PublicKey(arbiter)) {
+    return NextResponse.json(
+      { error: "STELLAR_ARBITER_ADDRESS is not a valid Stellar account" },
       { status: 503 },
     );
   }
@@ -60,9 +68,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 
-  if (!Number.isFinite(amount) || amount <= 0) {
+  if (!Number.isSafeInteger(amount) || amount <= 0) {
     return NextResponse.json(
-      { error: "cart total must be a positive amount" },
+      { error: "cart total must be a positive integer amount" },
       { status: 400 },
     );
   }
@@ -72,6 +80,7 @@ export async function POST(request: Request) {
       orderId: body.orderId,
       buyer: body.buyer,
       seller,
+      arbiter,
       token,
       amount: toTokenAmount(amount),
     });

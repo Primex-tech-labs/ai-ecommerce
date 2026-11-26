@@ -9,6 +9,10 @@ export interface CartLineInput {
  * Recompute an order total from the server-side catalog. The browser sends
  * variant ids and quantities only, so a tampered request cannot set its own
  * price.
+ *
+ * Monetary model: catalog prices are integer major units (e.g. 399 = 399 XLM),
+ * and totals are computed with integer arithmetic only. Fractional or
+ * overflowing values are rejected instead of silently rounded.
  */
 export function subtotalFromLines(lines: CartLineInput[]): number {
   if (!Array.isArray(lines) || lines.length === 0) {
@@ -34,7 +38,17 @@ export function subtotalFromLines(lines: CartLineInput[]): number {
     if (unitPrice === undefined) {
       throw new Error(`unknown variant: ${line.variantId}`);
     }
-    total += unitPrice * quantity;
+    if (!Number.isSafeInteger(unitPrice) || unitPrice <= 0) {
+      throw new Error(`invalid price for ${line.variantId}`);
+    }
+    const lineTotal = unitPrice * quantity;
+    if (!Number.isSafeInteger(lineTotal)) {
+      throw new Error(`line total overflow for ${line.variantId}`);
+    }
+    total += lineTotal;
+    if (!Number.isSafeInteger(total)) {
+      throw new Error("order total overflow");
+    }
   }
-  return Math.round(total * 100) / 100;
+  return total;
 }

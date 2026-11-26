@@ -1,6 +1,7 @@
 export enum EscrowStatus {
   Created = "Created",
   Funded = "Funded",
+  Disputed = "Disputed",
   Released = "Released",
   Refunded = "Refunded",
 }
@@ -8,6 +9,7 @@ export enum EscrowStatus {
 export interface EscrowRecord {
   buyer: string;
   seller: string;
+  arbiter?: string;
   token: string;
   amount: bigint;
   status: EscrowStatus;
@@ -17,6 +19,8 @@ export interface CreateEscrowParams {
   orderId: string;
   buyer: string;
   seller: string;
+  /** Third party allowed to resolve a dispute on this order. */
+  arbiter: string;
   token: string;
   amount: bigint;
 }
@@ -48,7 +52,7 @@ export interface SubmittedTransaction {
 export interface ContractEventSummary {
   id: string;
   ledger: number;
-  /** Contract event name: `created`, `funded`, `released` or `refunded`. */
+  /** Contract event name: `created`, `funded`, `released`, `refunded` or `disputed`. */
   type: string;
   orderId?: string;
   buyer?: string;

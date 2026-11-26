@@ -79,6 +79,7 @@ export async function buildCreateAndFundEscrow(
         orderId,
         new Address(params.buyer).toScVal(),
         new Address(params.seller).toScVal(),
+        new Address(params.arbiter).toScVal(),
         new Address(params.token).toScVal(),
         nativeToScVal(params.amount, { type: "i128" }),
       ),
@@ -113,6 +114,7 @@ export async function buildCreateEscrow(
         nativeToScVal(toContractSymbol(params.orderId), { type: "symbol" }),
         new Address(params.buyer).toScVal(),
         new Address(params.seller).toScVal(),
+        new Address(params.arbiter).toScVal(),
         new Address(params.token).toScVal(),
         nativeToScVal(params.amount, { type: "i128" }),
       ),
@@ -150,6 +152,75 @@ export async function buildRefundEscrow(
   source: string,
 ): Promise<UnsignedTransaction> {
   return buildSingleCall(config, source, "refund", orderId);
+}
+
+/** Build a `dispute(order_id, initiator)` call. The initiator must be a party. */
+export async function buildDisputeEscrow(
+  config: StellarConfig,
+  orderId: string,
+  initiator: string,
+): Promise<UnsignedTransaction> {
+  assertContract(config);
+  const server = createServer(config);
+  const account = await server.getAccount(initiator);
+  const contract = new Contract(config.escrowContractId);
+  const transaction = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: config.networkPassphrase,
+  })
+    .addOperation(
+      contract.call(
+        "dispute",
+        nativeToScVal(toContractSymbol(orderId), { type: "symbol" }),
+        new Address(initiator).toScVal(),
+      ),
+    )
+    .setTimeout(TIMEOUT_SECONDS)
+    .build();
+
+  const simulation = await server.simulateTransaction(transaction);
+  assumeSimulationOk(simulation);
+  return {
+    xdr: assemble(transaction, simulation),
+    networkPassphrase: config.networkPassphrase,
+  };
+}
+
+/**
+ * Build a `resolve(order_id, arbiter, release_to_seller)` call. Only the
+ * configured arbiter can resolve, and only while the order is disputed.
+ */
+export async function buildResolveDispute(
+  config: StellarConfig,
+  orderId: string,
+  arbiter: string,
+  releaseToSeller: boolean,
+): Promise<UnsignedTransaction> {
+  assertContract(config);
+  const server = createServer(config);
+  const account = await server.getAccount(arbiter);
+  const contract = new Contract(config.escrowContractId);
+  const transaction = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: config.networkPassphrase,
+  })
+    .addOperation(
+      contract.call(
+        "resolve",
+        nativeToScVal(toContractSymbol(orderId), { type: "symbol" }),
+        new Address(arbiter).toScVal(),
+        nativeToScVal(releaseToSeller, { type: "bool" }),
+      ),
+    )
+    .setTimeout(TIMEOUT_SECONDS)
+    .build();
+
+  const simulation = await server.simulateTransaction(transaction);
+  assumeSimulationOk(simulation);
+  return {
+    xdr: assemble(transaction, simulation),
+    networkPassphrase: config.networkPassphrase,
+  };
 }
 
 async function buildSingleCall(
@@ -238,6 +309,7 @@ export async function readEscrow(
   return {
     buyer: String(native.buyer),
     seller: String(native.seller),
+    arbiter: native.arbiter ? String(native.arbiter) : undefined,
     token: String(native.token),
     amount: BigInt(String(native.amount)),
     status: normalizeStatus(native.status),

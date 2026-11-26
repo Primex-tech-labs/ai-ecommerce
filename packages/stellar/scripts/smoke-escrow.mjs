@@ -220,11 +220,13 @@ async function main() {
   const issuer = Keypair.random();
   const buyer = Keypair.random();
   const seller = Keypair.random();
+  const arbiter = Keypair.random();
   log({
     msg: "accounts",
     issuer: issuer.publicKey(),
     buyer: buyer.publicKey(),
     seller: seller.publicKey(),
+    arbiter: arbiter.publicKey(),
   });
   for (const account of [issuer, buyer, seller]) {
     await fundViaFriendbot(friendbot, account.publicKey());
@@ -325,6 +327,7 @@ async function main() {
     orderId,
     buyer: buyer.publicKey(),
     seller: seller.publicKey(),
+    arbiter: arbiter.publicKey(),
     token: sacContractId,
     amount: AMOUNT,
   });
