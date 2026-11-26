@@ -24,7 +24,7 @@ suite("auth repository (postgres)", () => {
 
   afterAll(async () => {
     if (emails.length > 0) {
-      await getPool().query("DELETE FROM users HHERE lower(email) = ANY($1)", [
+      await getPool().query("DELETE FROM users WHERE lower(email) = ANY($1::text[])", [
         emails.map((value) => value.toLowerCase()),
       ]);
     }

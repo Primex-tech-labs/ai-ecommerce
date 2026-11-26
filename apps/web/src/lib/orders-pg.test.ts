@@ -6,8 +6,6 @@ import type { OrderEvent } from "./orders";
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 const suite = hasDatabase ? describe : describe.skip;
 
-// These tests run only when DATABASE_URL is set (CI / local Postgres).
-// The schema must be migrated first (pnpm --filter @repo/web db:migrate).
 suite("postgres order repository", () => {
   const created: string[] = [];
   let sequence = 0;
@@ -38,7 +36,7 @@ suite("postgres order repository", () => {
 
   afterAll(async () => {
     if (created.length > 0) {
-      await getPool().query("DELETE FROM orders WHERE id = ANY($1)", [created]);
+      await getPool().query("DELETE FROM orders WHERE id = ANY($1::text[])", [created]);
     }
   });
 
