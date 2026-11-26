@@ -3,7 +3,7 @@ import {
   INDEXER_SIGNATURE_HEADER,
   verifyIndexerSignature,
 } from "@/lib/indexer-signature";
-import { upsertFromEvent, type OrderEvent, type OrderStatus } from "@/lib/orders";
+import { upsertFromEvent, type OrderEvent, type OrderStatus } from "@/lib/orders-server";
 
 const EVENT_TYPES: readonly OrderStatus[] = [
   "created",

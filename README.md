@@ -177,6 +177,37 @@ create -> funded -> disputed -> released  (arbiter -> seller)
 The dispute flow requires the escrow contract with the dispute ABI; redeploy and
 update `ESCROW_CONTRACT_ID` after upgrading. See [docs/dispute.md](docs/dispute.md).
 
+## Accounts and order privacy
+
+With `DATABASE_URL` set, the storefront supports account registration, login,
+session-based auth, and owner-scoped order history. Password hashing uses Node's
+built-in scrypt; sessions are server-side and stored in PostgreSQL. Checkout
+binds each order to the signed-in user, and `/orders` only shows that user's
+orders. Fund movement remains authorized on-chain by the buyer/seller/arbiter.
+
+Without a database (local dev / e2e) auth is disabled and the JSON store is used.
+See [docs/auth.md](docs/auth.md) for the architecture, endpoints, and limits. Each order has an owner-scoped detail page at `/orders/<id>`.
+
+## Database (PostgreSQL)
+
+When `DATABASE_URL` is set, orders are persisted in PostgreSQL; otherwise the app
+falls back to the JSON store (local dev / e2e). Migrations and the JSON importer
+are documented in [docs/database.md](docs/database.md).
+
+```bash
+pnpm --filter @repo/web db:migrate        # apply migrations
+pnpm --filter @repo/web db:status         # applied / pending
+pnpm --filter @repo/web db:rollback       # revert the latest migration
+pnpm --filter @repo/web db:import-orders  # import legacy JSON (idempotent)
+```
+
+## Monetary units
+
+Catalog prices are integer major units of the configured Stellar settlement
+asset; totals use integer arithmetic, and order/transaction amounts are stored as
+integer stroops (`1 unit = 10,000,000 stroops`). See
+[docs/financial.md](docs/financial.md).
+
 ## Docker
 
 ```bash

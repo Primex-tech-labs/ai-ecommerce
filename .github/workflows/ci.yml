@@ -2,13 +2,30 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, phase-3-db-auth]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   web:
     name: TypeScript monorepo
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: primex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/primex
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -17,6 +34,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @repo/web db:migrate
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test

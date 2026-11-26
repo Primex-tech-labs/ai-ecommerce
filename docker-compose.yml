@@ -47,6 +47,19 @@ services:
     ports:
       - "8001:8000"
 
+  migrate:
+    image: node:20-alpine
+    profiles: ["tools"]
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/primex
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm --filter @repo/web db:migrate"
+
 volumes:
   pgdata:
   ollama:

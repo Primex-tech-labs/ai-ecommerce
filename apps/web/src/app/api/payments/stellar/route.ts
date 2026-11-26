@@ -1,7 +1,10 @@
 import { buildCreateAndFundEscrow } from "@repo/stellar";
 import { StrKey } from "@stellar/stellar-sdk";
 import { NextResponse } from "next/server";
+import { authEnabled, getSessionUser } from "@/lib/auth";
+import { claimOrderOwner } from "@/lib/orders-server";
 import { subtotalFromLines, type CartLineInput } from "@/lib/pricing";
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { getStellarConfig, toTokenAmount } from "@/lib/stellar";
 
 interface CreateBody {
@@ -31,6 +34,22 @@ export async function POST(request: Request) {
       { error: "STELLAR_ARBITER_ADDRESS is not a valid Stellar account" },
       { status: 503 },
     );
+  }
+
+  // The settlement asset must be a Stellar Asset Contract (7-decimal Stellar
+  // asset). We refuse to send funds to an arbitrary/misconfigured contract id.
+  if (!StrKey.isValidContract(token)) {
+    return NextResponse.json(
+      { error: "STELLAR_TOKEN_CONTRACT_ID is not a valid contract address" },
+      { status: 503 },
+    );
+  }
+
+  // When a database is configured, checkout requires an authenticated account so
+  // the resulting order can be tied to its owner.
+  const user = authEnabled() ? await getSessionUser() : null;
+  if (authEnabled() && !user) {
+    return NextResponse.json({ error: "authentication required" }, { status: 401 });
   }
 
   let body: CreateBody;
@@ -75,6 +94,31 @@ export async function POST(request: Request) {
     );
   }
 
+  let stroops: bigint;
+  try {
+    stroops = toTokenAmount(amount);
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+  }
+
+  if (user) {
+    const limit = await rateLimit("checkout", user.id, 20, 3600);
+    if (!limit.allowed) return tooManyRequests(limit);
+
+    try {
+      await claimOrderOwner(body.orderId, user.id, {
+        buyer: body.buyer,
+        seller,
+        token,
+        arbiter,
+        escrowContractId: config.escrowContractId,
+        amountStroops: stroops.toString(),
+      });
+    } catch (error) {
+      return NextResponse.json({ error: (error as Error).message }, { status: 409 });
+    }
+  }
+
   try {
     const transaction = await buildCreateAndFundEscrow(config, {
       orderId: body.orderId,
@@ -82,7 +126,7 @@ export async function POST(request: Request) {
       seller,
       arbiter,
       token,
-      amount: toTokenAmount(amount),
+      amount: stroops,
     });
     return NextResponse.json(transaction);
   } catch (error) {

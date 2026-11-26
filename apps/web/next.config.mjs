@@ -31,6 +31,9 @@ if (process.env.NODE_ENV === "production") {
 
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    serverComponentsExternalPackages: ["pg"],
+  },
   transpilePackages: ["@repo/ui", "@repo/commerce-core", "@repo/ai-client", "@repo/stellar"],
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
