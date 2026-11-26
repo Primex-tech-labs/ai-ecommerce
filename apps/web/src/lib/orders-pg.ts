@@ -42,6 +42,10 @@ interface OrderRow extends QueryResultRow {
   refund_tx_hash: string | null;
 }
 
+interface OwnerRow extends QueryResultRow {
+  owner_id: string | null;
+}
+
 function rowToOrder(row: OrderRow): Order {
   return {
     orderId: row.id,
@@ -240,6 +244,67 @@ export async function upsertFromEvent(event: OrderEvent): Promise<Order> {
 
     await client.query("COMMIT");
     return order;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export interface ClaimOrderInput {
+  buyer: string;
+  seller: string;
+  token: string;
+  arbiter?: string;
+  escrowContractId: string;
+  amountStroops: string;
+}
+
+/**
+ * Bind an order id to the authenticated owner. Creates a pending order row if
+ * none exists yet; refuses to hand an existing order to a different user.
+ */
+export async function claimOrderOwner(
+  orderId: string,
+  ownerId: string,
+  input: ClaimOrderInput,
+): Promise<void> {
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    const existing = await client.query<OwnerRow>(
+      "SELECT owner_id FROM orders WHERE id = $1 FOR UPDATE",
+      [orderId],
+    );
+    const row = existing.rows[0];
+    if (row) {
+      if (row.owner_id && row.owner_id !== ownerId) {
+        throw new Error("order belongs to another user");
+      }
+      if (!row.owner_id) {
+        await client.query(
+          "UPDATE orders SET owner_id = $2, updated_at = now() WHERE id = $1",
+          [orderId, ownerId],
+        );
+      }
+    } else {
+      await client.query(
+        `INSERT INTO orders (id, owner_id, buyer, seller, arbiter, token, escrow_contract_id, status, status_rank, ledger, amount_stroops)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'created',1,0,$8)`,
+        [
+          orderId,
+          ownerId,
+          input.buyer,
+          input.seller,
+          input.arbiter ?? null,
+          input.token,
+          input.escrowContractId,
+          input.amountStroops,
+        ],
+      );
+    }
+    await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

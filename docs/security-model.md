@@ -114,9 +114,9 @@ known.
 
 1. **Order store is a JSON file**, not a database. Safe for a single writer, not
    multi-instance. PostgreSQL exists in `docker-compose` but is not wired in.
-2. **No end-user authentication.** `/orders` is not filtered by owner; wallet
+2. **Authentication and owner-scoped orders** are implemented when `DATABASE_URL` is set (server-side scrypt sessions; `/orders` is owner-scoped). Without a database, auth is disabled for dev/e2e. Wallet
    signatures protect funds, not order visibility.
-3. **No endpoint rate limiting** (login/checkout/dispute/webhook).
+3. **Rate limiting** is implemented for auth, checkout and order actions via PostgreSQL; AI-service and webhook limits are not wired.
 4. **Arbiter is a trusted role** (no decentralised dispute jury).
 5. **No Solana integration** — see [`solana.md`](solana.md).
 6. The contract has not been independently audited, and the dispute-enabled

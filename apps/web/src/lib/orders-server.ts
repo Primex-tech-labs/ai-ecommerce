@@ -43,3 +43,12 @@ export function upsertFromEvent(event: Parameters<typeof jsonStore.upsertFromEve
     ? pgStore.upsertFromEvent(event)
     : jsonStore.upsertFromEvent(event);
 }
+
+export async function claimOrderOwner(
+  orderId: string,
+  ownerId: string,
+  input: Parameters<typeof pgStore.claimOrderOwner>[2],
+): Promise<void> {
+  if (!usePostgres()) return;
+  await pgStore.claimOrderOwner(orderId, ownerId, input);
+}

@@ -177,6 +177,17 @@ create -> funded -> disputed -> released  (arbiter -> seller)
 The dispute flow requires the escrow contract with the dispute ABI; redeploy and
 update `ESCROW_CONTRACT_ID` after upgrading. See [docs/dispute.md](docs/dispute.md).
 
+## Accounts and order privacy
+
+With `DATABASE_URL` set, the storefront supports account registration, login,
+session-based auth, and owner-scoped order history. Password hashing uses Node's
+built-in scrypt; sessions are server-side and stored in PostgreSQL. Checkout
+binds each order to the signed-in user, and `/orders` only shows that user's
+orders. Fund movement remains authorized on-chain by the buyer/seller/arbiter.
+
+Without a database (local dev / e2e) auth is disabled and the JSON store is used.
+See [docs/auth.md](docs/auth.md) for the architecture, endpoints, and limits.
+
 ## Database (PostgreSQL)
 
 When `DATABASE_URL` is set, orders are persisted in PostgreSQL; otherwise the app

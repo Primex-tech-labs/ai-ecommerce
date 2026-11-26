@@ -1,5 +1,6 @@
 import { buildResolveDispute } from "@repo/stellar";
 import { NextResponse } from "next/server";
+import { authEnabled, getSessionUser } from "@/lib/auth";
 import { getOrder } from "@/lib/orders-server";
 import { getStellarConfig } from "@/lib/stellar";
 
@@ -11,6 +12,13 @@ export async function POST(
   if (!order) {
     return NextResponse.json({ error: "order not found" }, { status: 404 });
   }
+  if (authEnabled()) {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "authentication required" }, { status: 401 });
+    }
+  }
+
 
   if (order.status !== "disputed") {
     return NextResponse.json(
