@@ -171,6 +171,23 @@ Starts Postgres, Redis, Ollama, and the AI service.
 
 See [docs/architecture.md](docs/architecture.md) for request flows and extension points.
 
+## Security model and limitations
+
+The server is **non-custodial**: user wallet keys never reach it, and the Soroban
+contract enforces buyer/seller authorization and the escrow state machine.
+Indexer webhooks are HMAC-signed and **fail closed in production**, and order
+updates are forward-only and idempotent (duplicate or out-of-order events are
+ignored). See [docs/security-model.md](docs/security-model.md) for the full model.
+
+Known limitations (documented, not hidden):
+
+- Orders are stored in a JSON file, not PostgreSQL; it is a single-instance read model.
+- There is no end-user authentication or per-owner order visibility.
+- No dispute/arbiter flow, and the contract has not been independently audited.
+- Financial math in `pricing.ts` uses `number` before conversion to stroops.
+- Solana is not implemented; see [docs/solana.md](docs/solana.md) for the decision
+  and an adapter plan. Background: [ADR 0001](docs/adr/0001-stellar-escrow.md).
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). New contributors can start with issues labeled

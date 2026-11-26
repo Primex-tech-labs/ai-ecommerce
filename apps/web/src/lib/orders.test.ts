@@ -130,4 +130,46 @@ describe("order store", () => {
     expect(orders).toHaveLength(10);
     expect(new Set(orders.map((order) => order.orderId)).size).toBe(10);
   });
+
+  it("ignores duplicate and out-of-order events instead of regressing status", async () => {
+    await upsertFromEvent(event());
+    await upsertFromEvent(event({ id: "e2", ledger: 101, type: "funded" }));
+    await upsertFromEvent(event({ id: "e3", ledger: 102, type: "released" }));
+
+    // A re-delivered funded event must not move the order backwards.
+    const duplicate = await upsertFromEvent(
+      event({ id: "e4", ledger: 103, type: "funded" }),
+    );
+    expect(duplicate).toMatchObject({ status: "released", ledger: 102 });
+
+    // A refund after release must not overwrite the terminal state.
+    const refund = await upsertFromEvent(
+      event({ id: "e5", ledger: 104, type: "refunded" }),
+    );
+    expect(refund).toMatchObject({ status: "released" });
+  });
+
+  it("ignores events older than the stored ledger", async () => {
+    await upsertFromEvent(event({ ledger: 200, type: "funded" }));
+    const stale = await upsertFromEvent(event({ id: "stale", ledger: 100, type: "created" }));
+    expect(stale).toMatchObject({ status: "funded", ledger: 200 });
+  });
+
+  it("preserves transaction hashes across transitions", async () => {
+    await upsertFromEvent(event({ txHash: "0xcreate" }));
+    const funded = await upsertFromEvent(
+      event({ id: "e2", ledger: 101, type: "funded", txHash: "0xfund" }),
+    );
+    expect(funded).toMatchObject({
+      createTxHash: "0xcreate",
+      fundTxHash: "0xfund",
+      status: "funded",
+    });
+  });
+
+  it("rejects invalid event amounts", async () => {
+    await expect(upsertFromEvent(event({ amount: "not-a-number" }))).rejects.toThrow(
+      /invalid event amount/,
+    );
+  });
 });

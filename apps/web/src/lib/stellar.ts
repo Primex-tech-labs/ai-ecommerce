@@ -13,5 +13,8 @@ export function getStellarConfig(): StellarConfig {
 export const STELLAR_TOKEN_DECIMALS = 7;
 
 export function toTokenAmount(amount: number): bigint {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("amount must be a positive finite number");
+  }
   return BigInt(Math.round(amount * 10 ** STELLAR_TOKEN_DECIMALS));
 }

@@ -13,6 +13,14 @@ export async function POST(
     return NextResponse.json({ error: "order not found" }, { status: 404 });
   }
 
+  // Only a funded escrow can be refunded.
+  if (order.status !== "funded") {
+    return NextResponse.json(
+      { error: `order is ${order.status}; only funded orders can be refunded` },
+      { status: 409 },
+    );
+  }
+
   let body: { source?: unknown };
   try {
     body = (await request.json()) as { source?: unknown };
@@ -30,6 +38,16 @@ export async function POST(
     return NextResponse.json(
       { error: "Stellar checkout is not configured" },
       { status: 503 },
+    );
+  }
+
+  if (
+    order.escrowContractId &&
+    order.escrowContractId !== config.escrowContractId
+  ) {
+    return NextResponse.json(
+      { error: "order escrow contract does not match the configured contract" },
+      { status: 409 },
     );
   }
 
