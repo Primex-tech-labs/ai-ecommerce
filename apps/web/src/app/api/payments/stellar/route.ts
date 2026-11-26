@@ -36,6 +36,15 @@ export async function POST(request: Request) {
     );
   }
 
+  // The settlement asset must be a Stellar Asset Contract (7-decimal Stellar
+  // asset). We refuse to send funds to an arbitrary/misconfigured contract id.
+  if (!StrKey.isValidContract(token)) {
+    return NextResponse.json(
+      { error: "STELLAR_TOKEN_CONTRACT_ID is not a valid contract address" },
+      { status: 503 },
+    );
+  }
+
   // When a database is configured, checkout requires an authenticated account so
   // the resulting order can be tied to its owner.
   const user = authEnabled() ? await getSessionUser() : null;

@@ -52,3 +52,9 @@ export async function claimOrderOwner(
   if (!usePostgres()) return;
   await pgStore.claimOrderOwner(orderId, ownerId, input);
 }
+
+export function getOrderForOwner(orderId: string, ownerId: string) {
+  return usePostgres()
+    ? pgStore.getOrderForOwner(orderId, ownerId)
+    : jsonStore.getOrder(orderId);
+}

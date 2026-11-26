@@ -312,3 +312,15 @@ export async function claimOrderOwner(
     client.release();
   }
 }
+
+export async function getOrderForOwner(
+  orderId: string,
+  ownerId: string,
+): Promise<Order | null> {
+  const result = await getPool().query<OrderRow>(
+    "SELECT * FROM orders WHERE id = $1 AND owner_id = $2",
+    [orderId, ownerId],
+  );
+  const row = result.rows[0];
+  return row ? rowToOrder(row) : null;
+}

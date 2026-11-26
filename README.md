@@ -186,7 +186,7 @@ binds each order to the signed-in user, and `/orders` only shows that user's
 orders. Fund movement remains authorized on-chain by the buyer/seller/arbiter.
 
 Without a database (local dev / e2e) auth is disabled and the JSON store is used.
-See [docs/auth.md](docs/auth.md) for the architecture, endpoints, and limits.
+See [docs/auth.md](docs/auth.md) for the architecture, endpoints, and limits. Each order has an owner-scoped detail page at `/orders/<id>`.
 
 ## Database (PostgreSQL)
 
@@ -200,6 +200,13 @@ pnpm --filter @repo/web db:status         # applied / pending
 pnpm --filter @repo/web db:rollback       # revert the latest migration
 pnpm --filter @repo/web db:import-orders  # import legacy JSON (idempotent)
 ```
+
+## Monetary units
+
+Catalog prices are integer major units of the configured Stellar settlement
+asset; totals use integer arithmetic, and order/transaction amounts are stored as
+integer stroops (`1 unit = 10,000,000 stroops`). See
+[docs/financial.md](docs/financial.md).
 
 ## Docker
 

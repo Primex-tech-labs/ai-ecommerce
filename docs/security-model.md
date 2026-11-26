@@ -116,7 +116,7 @@ known.
    multi-instance. PostgreSQL exists in `docker-compose` but is not wired in.
 2. **Authentication and owner-scoped orders** are implemented when `DATABASE_URL` is set (server-side scrypt sessions; `/orders` is owner-scoped). Without a database, auth is disabled for dev/e2e. Wallet
    signatures protect funds, not order visibility.
-3. **Rate limiting** is implemented for auth, checkout and order actions via PostgreSQL; AI-service and webhook limits are not wired.
+3. **Rate limiting** is implemented for auth, checkout, order actions, and the AI proxy via PostgreSQL; the Python AI service and webhook endpoint are not independently rate-limited (the webhook is HMAC-authenticated and intentionally retryable).
 4. **Arbiter is a trusted role** (no decentralised dispute jury).
 5. **No Solana integration** — see [`solana.md`](solana.md).
 6. The contract has not been independently audited, and the dispute-enabled
