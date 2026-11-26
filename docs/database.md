@@ -73,3 +73,15 @@ pg_restore --dbname="$DATABASE_URL" --no-owner primex-$(date +%F).dump
 
 Do not run rollbacks or restores against production without a verified backup
 and explicit authorization.
+
+## Indexer cursor
+
+When `DATABASE_URL` is set, the indexer persists its cursor in `indexer_state`
+(id `escrow`) so restarts and multiple instances resume safely; otherwise it uses
+`INDEXER_CURSOR_FILE`. The startup log reports the active `cursor` backend.
+
+## CI verification
+
+CI runs `db:migrate` against a PostgreSQL service, the DB integration tests, an
+idempotent JSON import (twice), and a `db:rollback` + `db:migrate` cycle to prove
+migrations are reversible.

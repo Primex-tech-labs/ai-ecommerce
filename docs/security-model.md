@@ -81,7 +81,7 @@ likewise refuses to start unsigned in production.
 
 ## Indexer reliability
 
-- Cursor persisted to `INDEXER_CURSOR_FILE` and reloaded on start.
+- Cursor persisted to PostgreSQL (`indexer_state`) when `DATABASE_URL` is set, or `INDEXER_CURSOR_FILE` otherwise, and reloaded on start.
 - The cursor only advances after a successful webhook delivery; failures retry.
 - Events are processed in ledger order.
 

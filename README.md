@@ -192,7 +192,8 @@ See [docs/auth.md](docs/auth.md) for the architecture, endpoints, and limits. Ea
 
 When `DATABASE_URL` is set, orders are persisted in PostgreSQL; otherwise the app
 falls back to the JSON store (local dev / e2e). Migrations and the JSON importer
-are documented in [docs/database.md](docs/database.md).
+are documented in [docs/database.md](docs/database.md); deployment and contract
+verification are in [docs/deployment.md](docs/deployment.md).
 
 ```bash
 pnpm --filter @repo/web db:migrate        # apply migrations

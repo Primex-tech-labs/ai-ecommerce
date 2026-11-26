@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, phase-3-db-auth]
+    branches: [main, phase-3-db-auth, phase-3b-hardening]
   pull_request:
   workflow_dispatch:
 
@@ -38,6 +38,16 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      - name: Import legacy JSON (idempotent)
+        run: |
+          mkdir -p apps/web/.data
+          node -e "const fs=require('fs');fs.writeFileSync('apps/web/.data/orders.json', JSON.stringify({orders:{ci_import_1:{orderId:'ci_import_1',buyer:'GB',seller:'GS',token:'CT',amount:'10000000',status:'created',ledger:1,escrowContractId:'CE',updatedAt:new Date().toISOString()}}}))"
+          pnpm --filter @repo/web db:import-orders
+          pnpm --filter @repo/web db:import-orders
+      - name: Migrations are reversible
+        run: |
+          pnpm --filter @repo/web db:rollback
+          pnpm --filter @repo/web db:migrate
       - run: pnpm build
 
   ai:
