@@ -236,6 +236,25 @@ Known limitations (documented, not hidden):
 - Solana is not implemented; see [docs/solana.md](docs/solana.md) for the decision
   and an adapter plan. Background: [ADR 0001](docs/adr/0001-stellar-escrow.md).
 
+## Project status
+
+**Not production-ready.** The core architecture is implemented and CI-verified:
+PostgreSQL order persistence, authentication/sessions, owner-scoped orders, the
+dispute/arbiter contract, integer pricing, security scanning, and shared rate
+limiting. Remaining work before any production use:
+
+- Redeploy the dispute-enabled escrow contract and verify its ABI on testnet.
+- Independent security review of the Soroban contract (the arbiter is a trusted role).
+- Wallet ↔ account signature linking (funds are on-chain-authorized; order
+  visibility is session-scoped).
+- Password reset/email verification and admin role enforcement.
+- Shared rate limiting inside the Python AI service, and webhook limiting.
+- Full HTTP-level IDOR tests and indexer restart/rollback tests.
+- Full Docker Compose app startup (only an optional `migrate` tool exists).
+- Align the catalog `currency` label with the configured settlement asset.
+
+See [ROADMAP.md](ROADMAP.md) for the full list.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). New contributors can start with issues labeled
