@@ -1,7 +1,10 @@
 import { createHmac } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { fetchEscrowEvents, getLatestLedger, resolveConfig } from "@repo/stellar";
+import {
+  cursorBackend,
+  loadIndexerCursor,
+  saveIndexerCursor,
+} from "./cursor";
 
 const config = resolveConfig({
   STELLAR_NETWORK: process.env.STELLAR_NETWORK,
@@ -16,39 +19,8 @@ const webhookUrl = process.env.ORDERS_WEBHOOK_URL;
 const webhookSecret = process.env.ORDERS_WEBHOOK_SECRET;
 const configuredStart = process.env.INDEXER_START_LEDGER;
 
-function cursorFile(): string {
-  const configured = process.env.INDEXER_CURSOR_FILE;
-  const relative =
-    configured && configured.trim() !== ""
-      ? configured
-      : ".data/indexer-cursor.json";
-  return path.resolve(process.cwd(), relative);
-}
-
 function isPositiveInteger(value: number): boolean {
   return Number.isFinite(value) && Number.isInteger(value) && value > 0;
-}
-
-async function loadCursor(): Promise<number | undefined> {
-  try {
-    const raw = await readFile(cursorFile(), "utf8");
-    const parsed = JSON.parse(raw) as { ledger?: unknown };
-    if (typeof parsed.ledger === "number" && isPositiveInteger(parsed.ledger)) {
-      return parsed.ledger;
-    }
-    return undefined;
-  } catch (error) {
-    if ((error as { code?: string }).code === "ENOENT") return undefined;
-    throw error;
-  }
-}
-
-async function saveCursor(ledger: number): Promise<void> {
-  const file = cursorFile();
-  await mkdir(path.dirname(file), { recursive: true });
-  const temporary = `${file}.${process.pid}.tmp`;
-  await writeFile(temporary, `${JSON.stringify({ ledger })}\n`, "utf8");
-  await rename(temporary, file);
 }
 
 /**
@@ -74,7 +46,7 @@ async function deliver(record: unknown): Promise<void> {
 let cursor: number | undefined;
 
 async function initialCursor(): Promise<number> {
-  const persisted = await loadCursor();
+  const persisted = await loadIndexerCursor();
   if (persisted !== undefined) return persisted;
 
   if (configuredStart !== undefined && configuredStart !== "") {
@@ -112,7 +84,7 @@ async function tick(): Promise<void> {
     await deliver({ ts: new Date().toISOString(), ...event });
     current = Math.max(current, event.ledger + 1);
     cursor = current;
-    await saveCursor(current);
+    await saveIndexerCursor(current);
   }
 
   if (ordered.length === 0) {
@@ -121,7 +93,7 @@ async function tick(): Promise<void> {
     const latest = await getLatestLedger(config);
     current = Math.max(current, latest);
     cursor = current;
-    await saveCursor(current);
+    await saveIndexerCursor(current);
   }
 }
 
@@ -148,7 +120,7 @@ async function main(): Promise<void> {
       network: config.name,
       escrowContractId: config.escrowContractId,
       pollMs,
-      cursorFile: cursorFile(),
+      cursor: cursorBackend(),
     }),
   );
 
